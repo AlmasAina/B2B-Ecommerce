@@ -1,4 +1,5 @@
-// src/components/CategorySection.jsx
+'use client';
+
 import {
   Grid,
   Card,
@@ -19,11 +20,17 @@ const categories = [
 
 export default function CategorySection() {
   return (
-    <Box sx={{ padding: '4rem 2rem', backgroundColor: '#F1F8E9' }}>
+    <Box
+      sx={{
+        px: 4,
+        py: 6,
+        backgroundColor: '#f1f8e9', // light green
+      }}
+    >
       <Typography
         variant="h4"
         gutterBottom
-        sx={{ mb: 4, color: '#2E7D32', fontWeight: 600 }}
+        sx={{ mb: 5, color: '#2E7D32', fontWeight: 'bold', textAlign: 'center' }}
       >
         Shop by Category
       </Typography>
@@ -33,33 +40,32 @@ export default function CategorySection() {
           <Grid item xs={12} sm={6} md={4} key={cat.name}>
             <Link href={`/category/${cat.name.toLowerCase()}`} passHref>
               <Card
+                elevation={3}
                 sx={{
-                  borderRadius: 3,
+                  borderRadius: 2,
                   overflow: 'hidden',
-                  height: '300px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
                   transition: 'transform 0.3s, box-shadow 0.3s',
                   '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.1)',
                   },
+                  backgroundColor: '#ffffff',
                 }}
               >
-                <CardActionArea sx={{ height: '100%' }}>
-                  <img
+                <CardActionArea>
+                  <Box
+                    component="img"
                     src={cat.image}
                     alt={cat.name}
-                    style={{
+                    sx={{
                       width: '100%',
-                      height: '65%',
+                      height: 180,
                       objectFit: 'cover',
                     }}
                   />
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography
-                      variant="h6"
+                      variant="subtitle1"
                       sx={{ fontWeight: 600, color: '#2E7D32' }}
                     >
                       {cat.name}

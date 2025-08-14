@@ -4,6 +4,7 @@ import { Container, Typography, Button, Box, Grid } from '@mui/material';
 import SEOHead from './SEOHead';
 import CategorySection from './CategorySection';
 import ProductCard from './ProductCard';
+import Navbar from './Navbar'; // ✅ Import Navbar
 
 const Home = () => {
   const products = [
@@ -28,6 +29,8 @@ const Home = () => {
         description="High-quality surgical instruments, beauty tools, leather goods, sportswear, and gloves — trusted B2B supplier."
         keywords="surgical, beauty, leather, B2B supplier, wholesale"
       />
+
+      <Navbar /> {/* ✅ Navbar at the top */}
 
       <Box sx={{ backgroundColor: '#e8f5e9', py: 6 }}>
         <Container maxWidth="lg">
