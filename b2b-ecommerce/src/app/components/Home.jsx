@@ -1,10 +1,10 @@
-// src/components/Home.jsx
 'use client';
 
 import { Container, Typography, Button, Box, Grid } from '@mui/material';
 import SEOHead from './SEOHead';
 import CategorySection from './CategorySection';
 import ProductCard from './ProductCard';
+
 const Home = () => {
   const products = [
     {
@@ -29,39 +29,48 @@ const Home = () => {
         keywords="surgical, beauty, leather, B2B supplier, wholesale"
       />
 
+      <Box sx={{ backgroundColor: '#e8f5e9', py: 6 }}>
+        <Container maxWidth="lg">
+          <Box textAlign="center">
+            <Typography variant="h3" gutterBottom sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+              Premium Surgical & Beauty Products
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: '#4caf50' }}>
+              Leading B2B Supplier of Surgical, Beauty, Leather & Sportswear Goods
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              href="/category/all"
+              sx={{
+                mt: 3,
+                backgroundColor: '#388e3c',
+                '&:hover': { backgroundColor: '#2e7d32' }
+              }}
+            >
+              Browse Products
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+
       <Container maxWidth="lg">
-        <Box textAlign="center" my={6}>
-          <Typography variant="h3" gutterBottom>
-            Premium Surgical & Beauty Products
-          </Typography>
-          <Typography variant="subtitle1">
-            Leading B2B Supplier of Surgical, Beauty, Leather & Sportswear Goods
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            href="/category/all"
-            sx={{ mt: 3 }}
-          >
-            Browse Products
-          </Button>
+        <Box my={6}>
+          <CategorySection />
         </Box>
 
-        <CategorySection />
-
-        <Box mt={6}>
-          <Typography variant="h5" gutterBottom>
+        {/* <Box mt={6}>
+          <Typography variant="h5" gutterBottom sx={{ color: '#2e7d32' }}>
             Featured Products
           </Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             {products.map((product) => (
               <Grid item xs={12} sm={6} md={4} key={product.slug}>
                 <ProductCard product={product} />
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </Box> */}
       </Container>
     </>
   );
