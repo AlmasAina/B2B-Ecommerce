@@ -5,7 +5,6 @@ import { Container, Typography, Button, Box, Grid } from '@mui/material';
 import SEOHead from './SEOHead';
 import CategorySection from './CategorySection';
 import ProductCard from './ProductCard';
-
 const Home = () => {
   const products = [
     {
