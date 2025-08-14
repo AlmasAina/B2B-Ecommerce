@@ -1,4 +1,3 @@
-// src/components/ProductCard.jsx
 import {
   Card,
   CardMedia,
@@ -6,6 +5,7 @@ import {
   Typography,
   Button,
   CardActions,
+  Box,
 } from '@mui/material';
 import Link from 'next/link';
 
@@ -14,39 +14,77 @@ export default function ProductCard({ product }) {
     <Card
       sx={{
         backgroundColor: 'white',
-        border: '1px solid #A5D6A7', // Light green border
-        boxShadow: '0 2px 8px rgba(0, 128, 0, 0.1)', // Subtle green shadow
-        borderRadius: 2,
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+        borderRadius: 3,
         overflow: 'hidden',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-8px)',
+          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+        },
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <CardMedia
-        component="img"
-        height="200"
-        image={product.image}
-        alt={product.name}
-        sx={{ objectFit: 'cover' }}
-      />
-      <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ color: '#2E7D32' }}>
+      <Box sx={{ position: 'relative' }}>
+        <CardMedia
+          component="img"
+          height="220"
+          image={product.image}
+          alt={product.name}
+          sx={{ 
+            objectFit: 'cover',
+            borderRadius: '12px 12px 0 0'
+          }}
+        />
+      </Box>
+      
+      <CardContent sx={{ flexGrow: 1, p: 3 }}>
+        <Typography 
+          variant="h6" 
+          gutterBottom 
+          sx={{ 
+            color: '#2E7D32', 
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            lineHeight: 1.3
+          }}
+        >
           {product.name}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'gray' }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: '#666',
+            backgroundColor: '#f5f5f5',
+            px: 2,
+            py: 0.5,
+            borderRadius: 2,
+            display: 'inline-block',
+            fontSize: '0.9rem'
+          }}
+        >
           {product.category}
         </Typography>
       </CardContent>
-      <CardActions sx={{ paddingLeft: 2, paddingBottom: 2 }}>
-        <Link href={`/product/${product.slug}`} passHref>
+      
+      <CardActions sx={{ p: 3, pt: 0 }}>
+        <Link href={`/product/${product.slug}`} passHref style={{ width: '100%' }}>
           <Button
-            size="small"
+            fullWidth
             variant="outlined"
             sx={{
               borderColor: '#2E7D32',
               color: '#2E7D32',
+              py: 1,
+              fontWeight: 500,
+              borderRadius: 2,
               '&:hover': {
-                backgroundColor: '#E8F5E9',
-                borderColor: '#1B5E20',
-                color: '#1B5E20',
+                backgroundColor: '#2E7D32',
+                borderColor: '#2E7D32',
+                color: 'white',
               },
             }}
           >
