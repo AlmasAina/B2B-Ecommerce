@@ -1,11 +1,10 @@
 
 import dbConnect from '@/lib/dbConnect';
-import Product from "@/models/Product";
-import Product from "@/models/Product"
+import Product from '@/app/models/Product';
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-  await connectDB();
+  await dbConnect();
   const data = await req.json();
 
   const product = await Product.create(data);
@@ -13,7 +12,7 @@ export async function POST(req) {
 }
 
 export async function GET() {
-  await connectDB();
+  await dbConnect();
 
   const products = await Product.find({});
   return NextResponse.json({ success: true, products });
