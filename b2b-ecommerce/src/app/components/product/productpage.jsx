@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { Container, Grid, Typography, Box } from '@mui/material';
-import ProductCard from '@/app/components/ProductCard';
+import ProductCard from '@/app/components/product/ProductCard';
 
 export default function ProductListing() {
   const [products, setProducts] = useState([]);
 
-  // Dummy data (same structure as your Product model)
+  // Dummy data with proper IDs
   useEffect(() => {
     setProducts([
       {
-        _id: '1',
+        _id: '123', // This will match your URL /product/123
         title: 'Surgical Scissors',
         description: 'Sharp and durable scissors.',
         price: 25,
@@ -20,7 +20,7 @@ export default function ProductListing() {
         slug: 'surgical-scissors'
       },
       {
-        _id: '2',
+        _id: '124', // You can access this via /product/124
         title: 'Beauty Kit',
         description: 'Professional beauty kit.',
         price: 45,

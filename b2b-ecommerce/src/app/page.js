@@ -2,7 +2,7 @@
 'use client';
 
 
-import Home from './components/Home';
+import Home from './components/product/Home';
 export default function HomePage() {
   return <Home />;
 }

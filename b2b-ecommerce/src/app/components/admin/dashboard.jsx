@@ -37,7 +37,7 @@ import {
 import { styled, alpha } from '@mui/material/styles';
 
 // Import custom components
-import SEOHead from '../../components/SEOHead';
+import SEOHead from '../product/SEOHead';
 import StatsCard from '../../components/admin/StatsCard';
 import RecentTable from '../../components/admin/RecentTable';
 import ChartCard from '../../components/admin/ChartCard';

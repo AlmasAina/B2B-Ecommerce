@@ -1,6 +1,6 @@
 'use client';
 
-import SEOHead from '@/app/components/SEOHead';
+import SEOHead from '@/app/components/product/SEOHead';
 import Dashboard from '@/app/components/admin/dashboard';
 
 export default function AdminPage() {
