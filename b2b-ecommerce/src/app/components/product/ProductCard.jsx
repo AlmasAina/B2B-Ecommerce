@@ -95,36 +95,108 @@
 //     </Card>
 //   );
 // }
+
+
 import Link from 'next/link';
 import { Card, CardContent, CardMedia, Typography, Box, Button } from '@mui/material';
 
 export default function ProductCard({ product }) {
   return (
-    <Card sx={{ maxWidth: 345, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card sx={{ 
+      maxWidth: 345, 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      borderRadius: '16px',
+      overflow: 'hidden',
+      border: 'none',
+      boxShadow: 'none',
+      backgroundColor: '#f9fafb',
+      transition: 'transform 0.3s ease',
+      '&:hover': {
+        transform: 'translateY(-4px)'
+      }
+    }}>
       <CardMedia
         component="img"
-        height="200"
+        height="240"
         image={product.image}
         alt={product.title}
+        sx={{ 
+          objectFit: 'cover',
+          borderRadius: '12px',
+          margin: '16px 16px 0 16px'
+        }}
       />
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography gutterBottom variant="h6" component="div">
+      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
+        <Typography 
+          gutterBottom 
+          variant="h6" 
+          component="div"
+          sx={{ 
+            color: '#333',
+            fontWeight: 'bold',
+            mb: 1
+          }}
+        >
           {product.title}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+        
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          sx={{ 
+            flexGrow: 1,
+            mb: 3,
+            lineHeight: 1.6,
+            color: '#666'
+          }}
+        >
           {product.description}
         </Typography>
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="h6" color="primary">
-            ${product.price}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {product.category}
-          </Typography>
-        </Box>
-        <Box sx={{ mt: 2 }}>
+        
+        <Box sx={{ mt: 'auto' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#333',
+                fontWeight: 'bold'
+              }}
+            >
+              ${product.price}
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: '#4ade80',
+                color: '#fff',
+                px: 2,
+                py: 0.5,
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                fontWeight: 600
+              }}
+            >
+              {product.category}
+            </Box>
+          </Box>
+          
           <Link href={`/product/${product._id}`} passHref>
-            <Button variant="contained" color="primary" fullWidth>
+            <Button 
+              variant="contained" 
+              fullWidth
+              sx={{
+                backgroundColor: '#333',
+                color: '#fff',
+                py: 1.2,
+                borderRadius: '25px',
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': {
+                  backgroundColor: '#555'
+                }
+              }}
+            >
               View Details
             </Button>
           </Link>
