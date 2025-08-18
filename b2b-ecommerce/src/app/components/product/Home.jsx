@@ -214,7 +214,7 @@ const Home = () => {
                 mb: 2
               }}
             >
-              Why Choose MediSupply Pro?
+              Why Choose MyStore?
             </Typography>
           </Box>
           
