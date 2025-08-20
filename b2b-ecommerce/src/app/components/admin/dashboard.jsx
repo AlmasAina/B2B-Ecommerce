@@ -32,6 +32,7 @@ import {
     Analytics as AnalyticsIcon,
     People as UsersIcon,
     Article as BlogIcon,
+    Settings as SettingsIcon,
     AccountCircle
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
@@ -42,6 +43,7 @@ import StatsCard from '../../components/admin/StatsCard';
 import RecentTable from '../../components/admin/RecentTable';
 import ChartCard from '../../components/admin/ChartCard';
 import EmailStatusCard from '../../components/admin/EmailStatusCard';
+import WebsiteSettings from '../../components/admin/WebsiteSettings';
 
 const drawerWidth = 280;
 
@@ -142,6 +144,7 @@ const AdminDashboard = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [drawerOpen, setDrawerOpen] = useState(!isMobile);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [currentView, setCurrentView] = useState('dashboard'); // State for current view
 
     const handleDrawerToggle = () => {
         setDrawerOpen(!drawerOpen);
@@ -311,14 +314,195 @@ const AdminDashboard = () => {
         { name: 'Machinery Parts', value: 98 }
     ];
 
+    // Define menu items with their corresponding view names
     const menuItems = [
-        { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard', active: true },
-        { text: 'Products', icon: <ProductsIcon />, path: '/admin/products' },
-        { text: 'Inquiries', icon: <InquiriesIcon />, path: '/admin/inquiries' },
-        { text: 'Analytics', icon: <AnalyticsIcon />, path: '/admin/analytics' },
-        { text: 'Users', icon: <UsersIcon />, path: '/admin/users' },
-        { text: 'Blog', icon: <BlogIcon />, path: '/admin/blogs' }
+        { text: 'Dashboard', icon: <DashboardIcon />, view: 'dashboard' },
+        { text: 'Products', icon: <ProductsIcon />, view: 'products' },
+        { text: 'Inquiries', icon: <InquiriesIcon />, view: 'inquiries' },
+        { text: 'Analytics', icon: <AnalyticsIcon />, view: 'analytics' },
+        { text: 'Users', icon: <UsersIcon />, view: 'users' },
+        { text: 'Blog', icon: <BlogIcon />, view: 'blog' },
+        { text: 'Website Settings', icon: <SettingsIcon />, view: 'websiteSettings' }
     ];
+
+    // Function to get current view title
+    const getCurrentViewTitle = () => {
+        const currentMenuItem = menuItems.find(item => item.view === currentView);
+        return currentMenuItem ? currentMenuItem.text : 'Dashboard';
+    };
+
+    // Function to render current view content
+    const renderCurrentView = () => {
+        switch (currentView) {
+            case 'dashboard':
+                return (
+                    <>
+                        {/* Stats Cards */}
+                        {statsData.map((stat, index) => (
+                            <Grid item xs={12} sm={6} lg={3} key={index}>
+                                <StatsCard {...stat} />
+                            </Grid>
+                        ))}
+
+                        {/* Sales Analytics Chart */}
+                        <Grid item xs={12} lg={8}>
+                            <ChartCard
+                                title="Product Demand Analytics"
+                                data={salesData}
+                                type="bar"
+                            />
+                        </Grid>
+
+                        {/* Email Notifications Status */}
+                        <Grid item xs={12} lg={4}>
+                            <EmailStatusCard
+                                lastSent="2024-01-15 14:30"
+                                recipients={456}
+                                deliveryRate={98.5}
+                            />
+                        </Grid>
+
+                        {/* Recent Products */}
+                        <Grid item xs={12} lg={6}>
+                            <RecentTable
+                                title="Latest Products"
+                                data={recentProducts}
+                                columns={[
+                                    { key: 'name', label: 'Product Name' },
+                                    { key: 'category', label: 'Category' },
+                                    { key: 'dateAdded', label: 'Date Added' }
+                                ]}
+                                type="products"
+                            />
+                        </Grid>
+
+                        {/* Recent Inquiries */}
+                        <Grid item xs={12} lg={6}>
+                            <RecentTable
+                                title="Recent Customer Inquiries"
+                                data={recentInquiries}
+                                columns={[
+                                    { key: 'customerName', label: 'Customer' },
+                                    { key: 'productName', label: 'Product' },
+                                    { key: 'date', label: 'Date' },
+                                    { key: 'status', label: 'Status' }
+                                ]}
+                                type="inquiries"
+                            />
+                        </Grid>
+
+                        {/* Recent Users */}
+                        <Grid item xs={12} lg={6}>
+                            <RecentTable
+                                title="New User Registrations"
+                                data={recentUsers}
+                                columns={[
+                                    { key: 'name', label: 'Name' },
+                                    { key: 'email', label: 'Email' },
+                                    { key: 'signupDate', label: 'Signup Date' },
+                                    { key: 'status', label: 'Status' }
+                                ]}
+                                type="users"
+                            />
+                        </Grid>
+
+                        {/* Recent Blog Posts */}
+                        <Grid item xs={12} lg={6}>
+                            <RecentTable
+                                title="Latest Blog Posts"
+                                data={recentBlogs}
+                                columns={[
+                                    { key: 'title', label: 'Title' },
+                                    { key: 'author', label: 'Author' },
+                                    { key: 'publishDate', label: 'Date' },
+                                    { key: 'status', label: 'Status' }
+                                ]}
+                                type="blogs"
+                            />
+                        </Grid>
+                    </>
+                );
+
+            case 'websiteSettings':
+                return (
+                    <Grid item xs={12}>
+                        <WebsiteSettings />
+                    </Grid>
+                );
+
+            case 'products':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Products Management
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Products management functionality will be implemented here.
+                        </Typography>
+                    </Grid>
+                );
+
+            case 'inquiries':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Customer Inquiries
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Customer inquiries management functionality will be implemented here.
+                        </Typography>
+                    </Grid>
+                );
+
+            case 'analytics':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Analytics & Reports
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Analytics and reporting functionality will be implemented here.
+                        </Typography>
+                    </Grid>
+                );
+
+            case 'users':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            User Management
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            User management functionality will be implemented here.
+                        </Typography>
+                    </Grid>
+                );
+
+            case 'blog':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Blog Management
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Blog management functionality will be implemented here.
+                        </Typography>
+                    </Grid>
+                );
+
+            default:
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Page Not Found
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            The requested page could not be found.
+                        </Typography>
+                    </Grid>
+                );
+        }
+    };
 
     const drawer = (
         <div>
@@ -329,25 +513,26 @@ const AdminDashboard = () => {
             </DrawerHeader>
             <Divider />
             <List>
-                {menuItems.map((item) => (
+                {menuItems.map((item, index) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton
+                            onClick={() => setCurrentView(item.view)} // Set current view on click
                             sx={{
-                                backgroundColor: item.active ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                backgroundColor: currentView === item.view ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                                 '&:hover': {
                                     backgroundColor: alpha(theme.palette.primary.main, 0.05),
                                 },
                             }}
                         >
-                            <ListItemIcon sx={{ color: item.active ? theme.palette.primary.main : 'inherit' }}>
+                            <ListItemIcon sx={{ color: currentView === item.view ? theme.palette.primary.main : 'inherit' }}>
                                 {item.icon}
                             </ListItemIcon>
                             <ListItemText
                                 primary={item.text}
                                 sx={{
-                                    color: item.active ? theme.palette.primary.main : 'inherit',
+                                    color: currentView === item.view ? theme.palette.primary.main : 'inherit',
                                     '& .MuiListItemText-primary': {
-                                        fontWeight: item.active ? 600 : 400
+                                        fontWeight: currentView === item.view ? 600 : 400
                                     }
                                 }}
                             />
@@ -380,7 +565,7 @@ const AdminDashboard = () => {
                         </IconButton>
 
                         <Typography variant="h6" noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                            Dashboard
+                            {getCurrentViewTitle()}
                         </Typography>
 
                         <Search>
@@ -451,93 +636,11 @@ const AdminDashboard = () => {
 
                     <Container maxWidth="xl" sx={{ mt: 2 }}>
                         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                            Dashboard Overview
+                            {getCurrentViewTitle()}
                         </Typography>
 
                         <Grid container spacing={3}>
-                            {/* Stats Cards */}
-                            {statsData.map((stat, index) => (
-                                <Grid item xs={12} sm={6} lg={3} key={index}>
-                                    <StatsCard {...stat} />
-                                </Grid>
-                            ))}
-
-                            {/* Sales Analytics Chart */}
-                            <Grid item xs={12} lg={8}>
-                                <ChartCard
-                                    title="Product Demand Analytics"
-                                    data={salesData}
-                                    type="bar"
-                                />
-                            </Grid>
-
-                            {/* Email Notifications Status */}
-                            <Grid item xs={12} lg={4}>
-                                <EmailStatusCard
-                                    lastSent="2024-01-15 14:30"
-                                    recipients={456}
-                                    deliveryRate={98.5}
-                                />
-                            </Grid>
-
-                            {/* Recent Products */}
-                            <Grid item xs={12} lg={6}>
-                                <RecentTable
-                                    title="Latest Products"
-                                    data={recentProducts}
-                                    columns={[
-                                        { key: 'name', label: 'Product Name' },
-                                        { key: 'category', label: 'Category' },
-                                        { key: 'dateAdded', label: 'Date Added' }
-                                    ]}
-                                    type="products"
-                                />
-                            </Grid>
-
-                            {/* Recent Inquiries */}
-                            <Grid item xs={12} lg={6}>
-                                <RecentTable
-                                    title="Recent Customer Inquiries"
-                                    data={recentInquiries}
-                                    columns={[
-                                        { key: 'customerName', label: 'Customer' },
-                                        { key: 'productName', label: 'Product' },
-                                        { key: 'date', label: 'Date' },
-                                        { key: 'status', label: 'Status' }
-                                    ]}
-                                    type="inquiries"
-                                />
-                            </Grid>
-
-                            {/* Recent Users */}
-                            <Grid item xs={12} lg={6}>
-                                <RecentTable
-                                    title="New User Registrations"
-                                    data={recentUsers}
-                                    columns={[
-                                        { key: 'name', label: 'Name' },
-                                        { key: 'email', label: 'Email' },
-                                        { key: 'signupDate', label: 'Signup Date' },
-                                        { key: 'status', label: 'Status' }
-                                    ]}
-                                    type="users"
-                                />
-                            </Grid>
-
-                            {/* Recent Blog Posts */}
-                            <Grid item xs={12} lg={6}>
-                                <RecentTable
-                                    title="Latest Blog Posts"
-                                    data={recentBlogs}
-                                    columns={[
-                                        { key: 'title', label: 'Title' },
-                                        { key: 'author', label: 'Author' },
-                                        { key: 'publishDate', label: 'Date' },
-                                        { key: 'status', label: 'Status' }
-                                    ]}
-                                    type="blogs"
-                                />
-                            </Grid>
+                            {renderCurrentView()}
                         </Grid>
                     </Container>
                 </Main>
