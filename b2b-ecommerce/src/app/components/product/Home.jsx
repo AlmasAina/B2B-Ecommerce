@@ -5,8 +5,11 @@ import SEOHead from './SEOHead';
 import CategorySection from './CategorySection';
 import ProductCard from './ProductCard';
 import Navbar from './Navbar';
+import { useThemeConfig } from '../ThemeConfigProvider';
 
 const Home = () => {
+  // Read theme config for dynamic colors across the homepage.
+  const { colorTheme, fontColor } = useThemeConfig();
   const featuredProducts = [
     {
       _id: "1",
@@ -46,6 +49,7 @@ const Home = () => {
       <Navbar />
 
       {/* Hero Section - ModestMuse Style */}
+      {/* Hero Section uses neutral bg but CTA buttons use theme color */}
       <Box sx={{ backgroundColor: '#f9fafb', py: 8 }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
@@ -75,6 +79,7 @@ const Home = () => {
                 Your trusted partner for high-quality surgical instruments, medical gloves, beauty tools, and premium leather products. Serving healthcare professionals and beauty businesses worldwide.
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {/* Primary CTA uses the configured theme color */}
                 <Button
                   variant="contained"
                   size="large"
@@ -82,14 +87,15 @@ const Home = () => {
                   sx={{
                     px: 4,
                     py: 1.5,
-                    backgroundColor: '#333',
-                    color: '#fff',
+                    backgroundColor: colorTheme,
+                    color: fontColor,
                     fontSize: '1rem',
                     fontWeight: 600,
                     borderRadius: '25px',
                     textTransform: 'none',
                     '&:hover': { 
-                      backgroundColor: '#555'
+                      backgroundColor: colorTheme,
+                      opacity: 0.9
                     }
                   }}
                 >
@@ -102,15 +108,16 @@ const Home = () => {
                   sx={{
                     px: 4,
                     py: 1.5,
-                    borderColor: '#333',
-                    color: '#333',
+                    // Secondary CTA uses themed outline
+                    borderColor: colorTheme,
+                    color: colorTheme,
                     fontSize: '1rem',
                     fontWeight: 600,
                     borderRadius: '25px',
                     textTransform: 'none',
                     '&:hover': { 
-                      backgroundColor: 'rgba(51,51,51,0.05)',
-                      borderColor: '#333'
+                      backgroundColor: 'rgba(0,0,0,0.03)',
+                      borderColor: colorTheme
                     }
                   }}
                 >

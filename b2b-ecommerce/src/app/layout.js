@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ThemeConfigProvider from './components/ThemeConfigProvider.jsx';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,11 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {/* Wrap the entire app in ThemeConfigProvider so all pages can access website config
+            fetched from the backend (name, logo, colors). */}
+        <ThemeConfigProvider>
+          {children}
+        </ThemeConfigProvider>
       </body>
     </html>
   );
