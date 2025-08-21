@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Container, Grid, Card, CardContent, Typography, Box, Button } from '@mui/material';
+import { Container, Grid, Card, CardContent, Typography, Box } from '@mui/material';
+import { useThemeConfig } from '../ThemeConfigProvider';
 import Link from 'next/link';
 
 const CategorySection = () => {
+  const { colorTheme, fontColor } = useThemeConfig();
   const categories = [
     {
       title: "Surgical Instruments",
@@ -52,8 +54,8 @@ const CategorySection = () => {
                 flexDirection: 'column',
                 borderRadius: '16px',
                 overflow: 'hidden',
-                border: 'none',
-                boxShadow: 'none',
+                border: '1px solid #eaeaea',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
                 backgroundColor: category.bgColor,
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -100,8 +102,8 @@ const CategorySection = () => {
                     <Box
                       key={idx}
                       sx={{
-                        backgroundColor: '#4ade80',
-                        color: '#fff',
+                        backgroundColor: colorTheme,
+                        color: fontColor,
                         px: 2,
                         py: 0.5,
                         borderRadius: '12px',

@@ -64,12 +64,13 @@ export default async function ProductDetail({ params }) {
           </div>
           <button 
             style={{ 
-              backgroundColor: '#2E7D32', 
-              color: 'white', 
+              backgroundColor: 'var(--brand-color)', 
+              color: 'var(--brand-font-color)', 
               padding: '12px 24px', 
               border: 'none', 
-              borderRadius: '4px', 
+              borderRadius: '8px', 
               fontSize: '1rem',
+              fontWeight: 600,
               cursor: 'pointer'
             }}
           >

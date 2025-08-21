@@ -371,11 +371,11 @@ const WebsiteSettings = () => {
                             </Typography>
                         </Box>
                     }
-                    subheader="Configure your website name, logo, and color theme"
+                    subheader="Configure your website name, logo, and color & font theme"
                 />
                 <CardContent>
                     <Grid container spacing={4}>
-                        {/* Website Name */}
+                        {/* 1) Website Name - stays on top */}
                         <Grid item xs={12}>
                             <TextField
                                 fullWidth
@@ -384,12 +384,12 @@ const WebsiteSettings = () => {
                                 onChange={(e) => handleInputChange('websiteName', e.target.value)}
                                 placeholder="Enter your website name"
                                 required
-                                helperText="This will be displayed as your website title"
+                                helperText="Shown in navbar and throughout the site"
                                 variant="outlined"
                             />
                         </Grid>
 
-                        {/* Logo Upload */}
+                        {/* 2) Logo Upload - immediately after name */}
                         <Grid item xs={12} md={6}>
                             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <ImageIcon />
@@ -451,7 +451,7 @@ const WebsiteSettings = () => {
                             </Paper>
                         </Grid>
 
-                        {/* Color Theme Preview */}
+                        {/* 3) Color Theme Preview - side by side with logo */}
                         <Grid item xs={12} md={6}>
                             <Typography variant="h6" gutterBottom>
                                 Current Theme Preview
@@ -487,10 +487,10 @@ const WebsiteSettings = () => {
                             </Paper>
                         </Grid>
 
-                        {/* Color Selection */}
+                        {/* 4) Color Selection */}
                         <Grid item xs={12}>
                             <Typography variant="h6" gutterBottom>
-                                Choose Color Theme
+                                Choose Primary Color Theme
                             </Typography>
                             <Box sx={{ maxHeight: 400, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
                                 {Object.entries(groupedColors).map(([category, colors]) => (
@@ -530,7 +530,7 @@ const WebsiteSettings = () => {
                             </Typography>
                         </Grid>
 
-                        {/* Font Color Selection */}
+                        {/* 5) Font Color Selection */}
                         <Grid item xs={12}>
                             <Typography variant="h6" gutterBottom>
                                 Choose Font Color (30 options)

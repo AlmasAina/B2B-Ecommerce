@@ -99,22 +99,24 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardMedia, Typography, Box, Button } from '@mui/material';
+import { useThemeConfig } from '../ThemeConfigProvider';
 
 export default function ProductCard({ product }) {
+  const { colorTheme, fontColor } = useThemeConfig();
   return (
     <Card sx={{ 
-      maxWidth: 345, 
-      height: '100%', 
-      display: 'flex', 
+      height: '100%',
+      display: 'flex',
       flexDirection: 'column',
       borderRadius: '16px',
       overflow: 'hidden',
-      border: 'none',
-      boxShadow: 'none',
-      backgroundColor: '#f9fafb',
-      transition: 'transform 0.3s ease',
+      border: '1px solid #eaeaea',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+      backgroundColor: '#ffffff',
+      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
       '&:hover': {
-        transform: 'translateY(-4px)'
+        transform: 'translateY(-6px)',
+        boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
       }
     }}>
       <CardMedia
@@ -160,16 +162,16 @@ export default function ProductCard({ product }) {
             <Typography 
               variant="h6" 
               sx={{ 
-                color: '#333',
-                fontWeight: 'bold'
+                color: '#111827',
+                fontWeight: 700
               }}
             >
               ${product.price}
             </Typography>
             <Box
               sx={{
-                backgroundColor: '#4ade80',
-                color: '#fff',
+                backgroundColor: colorTheme,
+                color: fontColor,
                 px: 2,
                 py: 0.5,
                 borderRadius: '12px',
@@ -186,14 +188,15 @@ export default function ProductCard({ product }) {
               variant="contained" 
               fullWidth
               sx={{
-                backgroundColor: '#333',
-                color: '#fff',
+                backgroundColor: colorTheme,
+                color: fontColor,
                 py: 1.2,
                 borderRadius: '25px',
                 textTransform: 'none',
                 fontWeight: 600,
                 '&:hover': {
-                  backgroundColor: '#555'
+                  backgroundColor: colorTheme,
+                  opacity: 0.9
                 }
               }}
             >
