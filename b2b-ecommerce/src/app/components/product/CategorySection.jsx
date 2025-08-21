@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Container, Grid, Card, CardContent, Typography, Box, Button } from '@mui/material';
+import { Container, Grid, Card, CardContent, Typography, Box } from '@mui/material';
+import { useThemeConfig } from '../ThemeConfigProvider';
 import Link from 'next/link';
 
 const CategorySection = () => {
+  const { colorTheme, fontColor } = useThemeConfig();
   const categories = [
     {
       title: "Surgical Instruments",
@@ -18,7 +20,7 @@ const CategorySection = () => {
       title: "Medical Gloves",
       description: "Latex-free nitrile gloves, surgical gloves, and examination gloves. Powder-free options available for sensitive skin.",
       image: "https://images.unsplash.com/photo-1584515933487-779824d29309?w=400&h=300&fit=crop",
-      slug: "medical-gloves", 
+      slug: "medical-gloves",
       features: ["Latex-Free", "Powder-Free"],
       bgColor: "#fdf4ff"
     },
@@ -45,15 +47,15 @@ const CategorySection = () => {
       <Grid container spacing={4}>
         {categories.map((category, index) => (
           <Grid item xs={12} sm={6} lg={3} key={index}>
-            <Card 
-              sx={{ 
+            <Card
+              sx={{
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: '16px',
                 overflow: 'hidden',
-                border: 'none',
-                boxShadow: 'none',
+                border: '1px solid #eaeaea',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
                 backgroundColor: category.bgColor,
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -71,37 +73,37 @@ const CategorySection = () => {
                   margin: '16px 16px 0 16px'
                 }}
               />
-              
+
               <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                <Typography 
-                  variant="h5" 
-                  gutterBottom 
-                  sx={{ 
-                    color: '#333', 
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{
+                    color: '#333',
                     fontWeight: 'bold',
                     mb: 2
                   }}
                 >
                   {category.title}
                 </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: '#666', 
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#666',
                     mb: 3,
                     lineHeight: 1.6
                   }}
                 >
                   {category.description}
                 </Typography>
-                
+
                 <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
                   {category.features.map((feature, idx) => (
                     <Box
                       key={idx}
                       sx={{
-                        backgroundColor: '#4ade80',
-                        color: '#fff',
+                        backgroundColor: colorTheme,
+                        color: fontColor,
                         px: 2,
                         py: 0.5,
                         borderRadius: '12px',

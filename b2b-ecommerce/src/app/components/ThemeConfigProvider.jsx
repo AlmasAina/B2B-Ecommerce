@@ -10,7 +10,7 @@ const ThemeConfigContext = createContext({
     websiteName: 'B2B-eCommerce',
     websiteLogo: '/next.svg',
     colorTheme: '#1976d2',
-    fontColor: 'white',
+    fontColor: '#ffffff',
     loading: true,
 });
 
@@ -21,7 +21,7 @@ export default function ThemeConfigProvider({ children }) {
         websiteName: 'B2B-eCommerce',
         websiteLogo: '/next.svg',
         colorTheme: '#1976d2',
-        fontColor: 'white',
+        fontColor: '#ffffff',
     });
     const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ export default function ThemeConfigProvider({ children }) {
                     websiteName: data.websiteName || 'B2B-eCommerce',
                     websiteLogo: data.websiteLogo || '/next.svg',
                     colorTheme: data.colorTheme || '#1976d2',
-                    fontColor: data.fontColor || 'white',
+                    fontColor: data.fontColor || '#ffffff',
                 });
             } catch (err) {
                 // If fetching fails, we keep defaults to avoid breaking the UI

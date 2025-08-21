@@ -38,9 +38,9 @@ export default async function ProductDetail({ params }) {
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
         <div style={{ flex: '1', minWidth: '300px' }}>
-          <img 
-            src={product.image} 
-            alt={product.title} 
+          <img
+            src={product.image}
+            alt={product.title}
             style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
           />
         </div>
@@ -62,14 +62,15 @@ export default async function ProductDetail({ params }) {
           <div style={{ marginBottom: '1rem' }}>
             <strong>Product ID:</strong> {product._id}
           </div>
-          <button 
-            style={{ 
-              backgroundColor: '#2E7D32', 
-              color: 'white', 
-              padding: '12px 24px', 
-              border: 'none', 
-              borderRadius: '4px', 
+          <button
+            style={{
+              backgroundColor: 'var(--brand-color)',
+              color: 'var(--brand-font-color)',
+              padding: '12px 24px',
+              border: 'none',
+              borderRadius: '8px',
               fontSize: '1rem',
+              fontWeight: 600,
               cursor: 'pointer'
             }}
           >

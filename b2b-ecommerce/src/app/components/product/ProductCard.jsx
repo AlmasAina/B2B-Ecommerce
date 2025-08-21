@@ -13,7 +13,7 @@
 //   return (
 //     <Card
 //       sx={{
-//         backgroundColor: 'white',
+//         backgroundColor: '#ffffff',
 //         border: '1px solid #e0e0e0',
 //         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
 //         borderRadius: 3,
@@ -40,7 +40,7 @@
 //           }}
 //         />
 //       </Box>
-      
+
 //       <CardContent sx={{ flexGrow: 1, p: 3 }}>
 //         <Typography 
 //           variant="h6" 
@@ -69,7 +69,7 @@
 //           {product.category}
 //         </Typography>
 //       </CardContent>
-      
+
 //       <CardActions sx={{ p: 3, pt: 0 }}>
 //         <Link href={`/product/${product.slug}`} passHref style={{ width: '100%' }}>
 //           <Button
@@ -84,7 +84,7 @@
 //               '&:hover': {
 //                 backgroundColor: '#2E7D32',
 //                 borderColor: '#2E7D32',
-//                 color: 'white',
+//                 color: '#ffffff',
 //               },
 //             }}
 //           >
@@ -99,22 +99,24 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardMedia, Typography, Box, Button } from '@mui/material';
+import { useThemeConfig } from '../ThemeConfigProvider';
 
 export default function ProductCard({ product }) {
+  const { colorTheme, fontColor } = useThemeConfig();
   return (
-    <Card sx={{ 
-      maxWidth: 345, 
-      height: '100%', 
-      display: 'flex', 
+    <Card sx={{
+      height: '100%',
+      display: 'flex',
       flexDirection: 'column',
       borderRadius: '16px',
       overflow: 'hidden',
-      border: 'none',
-      boxShadow: 'none',
-      backgroundColor: '#f9fafb',
-      transition: 'transform 0.3s ease',
+      border: '1px solid #eaeaea',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+      backgroundColor: '#ffffff',
+      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
       '&:hover': {
-        transform: 'translateY(-4px)'
+        transform: 'translateY(-6px)',
+        boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
       }
     }}>
       <CardMedia
@@ -122,18 +124,18 @@ export default function ProductCard({ product }) {
         height="240"
         image={product.image}
         alt={product.title}
-        sx={{ 
+        sx={{
           objectFit: 'cover',
           borderRadius: '12px',
           margin: '16px 16px 0 16px'
         }}
       />
       <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
-        <Typography 
-          gutterBottom 
-          variant="h6" 
+        <Typography
+          gutterBottom
+          variant="h6"
           component="div"
-          sx={{ 
+          sx={{
             color: '#333',
             fontWeight: 'bold',
             mb: 1
@@ -141,11 +143,11 @@ export default function ProductCard({ product }) {
         >
           {product.title}
         </Typography>
-        
-        <Typography 
-          variant="body2" 
-          color="text.secondary" 
-          sx={{ 
+
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
             flexGrow: 1,
             mb: 3,
             lineHeight: 1.6,
@@ -154,22 +156,22 @@ export default function ProductCard({ product }) {
         >
           {product.description}
         </Typography>
-        
+
         <Box sx={{ mt: 'auto' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: '#333',
-                fontWeight: 'bold'
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#111827',
+                fontWeight: 700
               }}
             >
               ${product.price}
             </Typography>
             <Box
               sx={{
-                backgroundColor: '#4ade80',
-                color: '#fff',
+                backgroundColor: colorTheme,
+                color: fontColor,
                 px: 2,
                 py: 0.5,
                 borderRadius: '12px',
@@ -180,20 +182,21 @@ export default function ProductCard({ product }) {
               {product.category}
             </Box>
           </Box>
-          
+
           <Link href={`/product/${product._id}`} passHref>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               fullWidth
               sx={{
-                backgroundColor: '#333',
-                color: '#fff',
+                backgroundColor: colorTheme,
+                color: fontColor,
                 py: 1.2,
                 borderRadius: '25px',
                 textTransform: 'none',
                 fontWeight: 600,
                 '&:hover': {
-                  backgroundColor: '#555'
+                  backgroundColor: colorTheme,
+                  opacity: 0.9
                 }
               }}
             >
