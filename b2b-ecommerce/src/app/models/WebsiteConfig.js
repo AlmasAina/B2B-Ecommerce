@@ -20,7 +20,7 @@ const WebsiteConfigSchema = new mongoose.Schema({
     fontColor: {
         type: String,
         required: true,
-        default: 'white'
+        default: '#ffffff'
     },
 }, { collection: 'websiteconfigs' }); // Explicitly define collection name
 
@@ -35,4 +35,4 @@ WebsiteConfigSchema.pre('save', async function (next) {
     next();
 });
 
-export default mongoose.models.WebsiteConfig || mongoose.model('WebsiteConfig', WebsiteConfigSchema);
+export default mongoose.models.WebsiteConfig || mongoose.model('WebsiteConfig', WebsiteConfigSchema)
