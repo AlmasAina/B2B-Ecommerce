@@ -5,8 +5,11 @@ import SEOHead from './SEOHead';
 import CategorySection from './CategorySection';
 import ProductCard from './ProductCard';
 import Navbar from './Navbar';
+import { useThemeConfig } from '../ThemeConfigProvider';
 
 const Home = () => {
+  // Read theme config for dynamic colors across the homepage.
+  const { colorTheme, fontColor } = useThemeConfig();
   const featuredProducts = [
     {
       _id: "1",
@@ -17,7 +20,7 @@ const Home = () => {
       price: 89.99
     },
     {
-      _id: "2", 
+      _id: "2",
       title: "Nitrile Examination Gloves",
       category: "Gloves",
       description: "Powder-free, latex-free nitrile gloves for medical examinations. Box of 100 pieces.",
@@ -46,14 +49,15 @@ const Home = () => {
       <Navbar />
 
       {/* Hero Section - ModestMuse Style */}
+      {/* Hero Section uses neutral bg but CTA buttons use theme color */}
       <Box sx={{ backgroundColor: '#f9fafb', py: 8 }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Typography 
-                variant="h2" 
-                gutterBottom 
-                sx={{ 
+              <Typography
+                variant="h2"
+                gutterBottom
+                sx={{
                   color: '#333',
                   fontWeight: 'bold',
                   mb: 3,
@@ -63,9 +67,9 @@ const Home = () => {
               >
                 Professional Medical & Beauty Supplies
               </Typography>
-              <Typography 
-                variant="h6" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                sx={{
                   color: '#666',
                   mb: 4,
                   lineHeight: 1.6,
@@ -75,6 +79,7 @@ const Home = () => {
                 Your trusted partner for high-quality surgical instruments, medical gloves, beauty tools, and premium leather products. Serving healthcare professionals and beauty businesses worldwide.
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {/* Primary CTA uses the configured theme color */}
                 <Button
                   variant="contained"
                   size="large"
@@ -82,14 +87,15 @@ const Home = () => {
                   sx={{
                     px: 4,
                     py: 1.5,
-                    backgroundColor: '#333',
-                    color: '#fff',
+                    backgroundColor: colorTheme,
+                    color: fontColor,
                     fontSize: '1rem',
                     fontWeight: 600,
                     borderRadius: '25px',
                     textTransform: 'none',
-                    '&:hover': { 
-                      backgroundColor: '#555'
+                    '&:hover': {
+                      backgroundColor: colorTheme,
+                      opacity: 0.9
                     }
                   }}
                 >
@@ -102,15 +108,16 @@ const Home = () => {
                   sx={{
                     px: 4,
                     py: 1.5,
-                    borderColor: '#333',
-                    color: '#333',
+                    // Secondary CTA uses themed outline
+                    borderColor: colorTheme,
+                    color: colorTheme,
                     fontSize: '1rem',
                     fontWeight: 600,
                     borderRadius: '25px',
                     textTransform: 'none',
-                    '&:hover': { 
-                      backgroundColor: 'rgba(51,51,51,0.05)',
-                      borderColor: '#333'
+                    '&:hover': {
+                      backgroundColor: 'rgba(0,0,0,0.03)',
+                      borderColor: colorTheme
                     }
                   }}
                 >
@@ -137,20 +144,20 @@ const Home = () => {
       <Box sx={{ py: 8, backgroundColor: '#fff' }}>
         <Container maxWidth="lg">
           <Box textAlign="center" sx={{ mb: 6 }}>
-            <Typography 
-              variant="h3" 
-              gutterBottom 
-              sx={{ 
-                color: '#333', 
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                color: '#333',
                 fontWeight: 'bold',
                 mb: 2
               }}
             >
               Our Product Categories
             </Typography>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: '#666',
                 maxWidth: '600px',
                 margin: '0 auto',
@@ -168,20 +175,20 @@ const Home = () => {
       <Box sx={{ backgroundColor: '#f9fafb', py: 8 }}>
         <Container maxWidth="lg">
           <Box textAlign="center" sx={{ mb: 6 }}>
-            <Typography 
-              variant="h3" 
-              gutterBottom 
-              sx={{ 
-                color: '#333', 
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                color: '#333',
                 fontWeight: 'bold',
                 mb: 2
               }}
             >
               Featured Products
             </Typography>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: '#666',
                 maxWidth: '500px',
                 margin: '0 auto'
@@ -190,7 +197,7 @@ const Home = () => {
               Handpicked premium products for your business needs
             </Typography>
           </Box>
-          
+
           <Grid container spacing={4}>
             {featuredProducts.map((product) => (
               <Grid item xs={12} sm={6} lg={4} key={product._id}>
@@ -205,11 +212,11 @@ const Home = () => {
       <Box sx={{ py: 8, backgroundColor: '#fff' }}>
         <Container maxWidth="lg">
           <Box textAlign="center" sx={{ mb: 6 }}>
-            <Typography 
-              variant="h3" 
-              gutterBottom 
-              sx={{ 
-                color: '#333', 
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                color: '#333',
                 fontWeight: 'bold',
                 mb: 2
               }}
@@ -217,15 +224,15 @@ const Home = () => {
               Why Choose MyStore?
             </Typography>
           </Box>
-          
+
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 3 }}>
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    backgroundColor: '#4ade80', 
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    backgroundColor: '#4ade80',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -246,11 +253,11 @@ const Home = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 3 }}>
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    backgroundColor: '#4ade80', 
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    backgroundColor: '#4ade80',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -271,11 +278,11 @@ const Home = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 3 }}>
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    backgroundColor: '#4ade80', 
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    backgroundColor: '#4ade80',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
