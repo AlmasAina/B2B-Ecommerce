@@ -10,7 +10,7 @@ const WebsiteConfigSchema = new mongoose.Schema({
     websiteLogo: {
         type: String, // Assuming this will be a URL or file path to the logo
         required: true,
-        default: '/logos.png'
+        default: '/next.svg'
     },
     colorTheme: {
         type: String, // You might want to define a more complex structure for color theme

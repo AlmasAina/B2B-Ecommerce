@@ -33,7 +33,7 @@ import {
 const WebsiteSettings = () => {
     const [settings, setSettings] = useState({
         websiteName: 'B2B-eCommerce',
-        websiteLogo: '/logos.png',
+        websiteLogo: '/next.svg',
         colorTheme: '#1976d2',
         fontColor: 'white'
     });
@@ -41,7 +41,7 @@ const WebsiteSettings = () => {
     const [saving, setSaving] = useState(false);
     const [alert, setAlert] = useState({ show: false, type: '', message: '' });
     const [logoFile, setLogoFile] = useState(null);
-    const [logoPreview, setLogoPreview] = useState('/logos.png'); // Default preview
+    const [logoPreview, setLogoPreview] = useState('/next.svg'); // Default preview
 
     // 100+ Color options with names and hex values
     const colorOptions = [
@@ -184,28 +184,22 @@ const WebsiteSettings = () => {
     const fetchSettings = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/admin/website-config');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.config) {
-                    setSettings({
-                        websiteName: data.config.websiteName || 'B2B-eCommerce',
-                        websiteLogo: data.config.websiteLogo || '/logos.png',
-                        colorTheme: data.config.colorTheme || '#1976d2',
-                        fontColor: data.config.fontColor || 'white'
-                    });
-                    setLogoPreview(data.config.websiteLogo);
-                } else {
-                    // Set default values if no config found
-                    setSettings({
-                        websiteName: 'B2B-eCommerce',
-                        websiteLogo: '/logos.png',
-                        colorTheme: '#1976d2',
-                        fontColor: 'white'
-                    });
-                    setLogoPreview('/logos.png');
-                }
+            const response = await fetch('/api/website-config');
+            if (!response.ok) {
+                throw new Error('Failed to fetch settings');
             }
+
+            const config = await response.json();
+
+            const nextSettings = {
+                websiteName: config.websiteName || 'B2B-eCommerce',
+                websiteLogo: config.websiteLogo || '/next.svg',
+                colorTheme: config.colorTheme || '#1976d2',
+                fontColor: config.fontColor || 'white'
+            };
+
+            setSettings(nextSettings);
+            setLogoPreview(nextSettings.websiteLogo);
         } catch (error) {
             console.error('Error fetching settings:', error);
             showAlert('error', 'Failed to load settings');
@@ -289,7 +283,7 @@ const WebsiteSettings = () => {
                 fontColor: settings.fontColor
             };
 
-            const response = await fetch('/api/admin/website-config', {
+            const response = await fetch('/api/website-config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -297,18 +291,21 @@ const WebsiteSettings = () => {
                 body: JSON.stringify(updatedSettings),
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    setSettings(updatedSettings);
-                    setLogoFile(null);
-                    showAlert('success', 'Website settings saved successfully!');
-                } else {
-                    throw new Error(data.error || 'Failed to save settings');
-                }
-            } else {
+            if (!response.ok) {
                 throw new Error('Failed to save settings');
             }
+
+            const savedConfig = await response.json();
+            const nextSettings = {
+                websiteName: savedConfig.websiteName || updatedSettings.websiteName,
+                websiteLogo: savedConfig.websiteLogo || updatedSettings.websiteLogo,
+                colorTheme: savedConfig.colorTheme || updatedSettings.colorTheme,
+                fontColor: savedConfig.fontColor || updatedSettings.fontColor
+            };
+
+            setSettings(nextSettings);
+            setLogoFile(null);
+            showAlert('success', 'Website settings saved successfully!');
         } catch (error) {
             console.error('Error saving settings:', error);
             showAlert('error', error.message || 'Failed to save settings');
@@ -320,11 +317,11 @@ const WebsiteSettings = () => {
     const handleReset = () => {
         setSettings({
             websiteName: 'B2B-eCommerce',
-            websiteLogo: '/logos.png',
+            websiteLogo: '/next.svg',
             colorTheme: '#1976d2',
             fontColor: 'white'
         });
-        setLogoPreview('/logos.png');
+        setLogoPreview('/next.svg');
         setLogoFile(null);
         showAlert('info', 'Settings reset to default values');
     };
