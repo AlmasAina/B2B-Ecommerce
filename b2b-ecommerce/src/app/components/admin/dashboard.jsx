@@ -44,6 +44,7 @@ import RecentTable from '../../components/admin/RecentTable';
 import ChartCard from '../../components/admin/ChartCard';
 import EmailStatusCard from '../../components/admin/EmailStatusCard';
 import WebsiteSettings from '../../components/admin/WebsiteSettings';
+import AddProductForm from '../../components/admin/AddProductForm.jsx';
 
 const drawerWidth = 280;
 
@@ -318,6 +319,7 @@ const AdminDashboard = () => {
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, view: 'dashboard' },
         { text: 'Products', icon: <ProductsIcon />, view: 'products' },
+        { text: 'Add Product', icon: <ProductsIcon />, view: 'addProduct' },
         { text: 'Inquiries', icon: <InquiriesIcon />, view: 'inquiries' },
         { text: 'Analytics', icon: <AnalyticsIcon />, view: 'analytics' },
         { text: 'Users', icon: <UsersIcon />, view: 'users' },
@@ -436,9 +438,19 @@ const AdminDashboard = () => {
                         <Typography variant="h5" gutterBottom>
                             Products Management
                         </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            Products management functionality will be implemented here.
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                            View and manage products.
                         </Typography>
+                        {/* Placeholder: products list will go here */}
+                    </Grid>
+                );
+            case 'addProduct':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Add New Product
+                        </Typography>
+                        <AddProductForm />
                     </Grid>
                 );
 
