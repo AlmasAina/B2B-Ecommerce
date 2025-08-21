@@ -33,8 +33,9 @@ import {
 const WebsiteSettings = () => {
     const [settings, setSettings] = useState({
         websiteName: 'B2B-eCommerce',
-        websiteLogo: '/uploads/logos/logo.png', // Default logo
-        colorTheme: '#1976d2' // Default blue color
+        websiteLogo: '/logos.png',
+        colorTheme: '#1976d2',
+        fontColor: 'white'
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -53,7 +54,7 @@ const WebsiteSettings = () => {
         { name: 'Azure', value: '#2196f3', category: 'Blue' },
         { name: 'Cerulean', value: '#29b6f6', category: 'Blue' },
         { name: 'Steel Blue', value: '#1565c0', category: 'Blue' },
-        
+
         // Greens
         { name: 'Forest Green', value: '#2e7d32', category: 'Green' },
         { name: 'Emerald', value: '#00c853', category: 'Green' },
@@ -63,7 +64,7 @@ const WebsiteSettings = () => {
         { name: 'Jade', value: '#009688', category: 'Green' },
         { name: 'Teal', value: '#0097a7', category: 'Green' },
         { name: 'Olive', value: '#689f38', category: 'Green' },
-        
+
         // Purples
         { name: 'Royal Purple', value: '#7b1fa2', category: 'Purple' },
         { name: 'Violet', value: '#9c27b0', category: 'Purple' },
@@ -73,7 +74,7 @@ const WebsiteSettings = () => {
         { name: 'Amethyst', value: '#8e24aa', category: 'Purple' },
         { name: 'Plum', value: '#ab47bc', category: 'Purple' },
         { name: 'Magenta', value: '#c2185b', category: 'Purple' },
-        
+
         // Reds
         { name: 'Crimson', value: '#d32f2f', category: 'Red' },
         { name: 'Cherry Red', value: '#c62828', category: 'Red' },
@@ -83,7 +84,7 @@ const WebsiteSettings = () => {
         { name: 'Burgundy', value: '#b71c1c', category: 'Red' },
         { name: 'Maroon', value: '#880e4f', category: 'Red' },
         { name: 'Ruby', value: '#e53935', category: 'Red' },
-        
+
         // Oranges
         { name: 'Orange', value: '#f57c00', category: 'Orange' },
         { name: 'Tangerine', value: '#ff9800', category: 'Orange' },
@@ -93,7 +94,7 @@ const WebsiteSettings = () => {
         { name: 'Burnt Orange', value: '#ef6c00', category: 'Orange' },
         { name: 'Copper', value: '#ff8f00', category: 'Orange' },
         { name: 'Sunset', value: '#ff6f00', category: 'Orange' },
-        
+
         // Yellows
         { name: 'Golden Yellow', value: '#ffeb3b', category: 'Yellow' },
         { name: 'Lemon', value: '#fff176', category: 'Yellow' },
@@ -103,7 +104,7 @@ const WebsiteSettings = () => {
         { name: 'Gold', value: '#ffc107', category: 'Yellow' },
         { name: 'Honey', value: '#ffb300', category: 'Yellow' },
         { name: 'Banana', value: '#fff59d', category: 'Yellow' },
-        
+
         // Pinks
         { name: 'Hot Pink', value: '#e91e63', category: 'Pink' },
         { name: 'Rose Pink', value: '#f06292', category: 'Pink' },
@@ -113,7 +114,7 @@ const WebsiteSettings = () => {
         { name: 'Flamingo', value: '#ff4081', category: 'Pink' },
         { name: 'Bubblegum', value: '#f48fb1', category: 'Pink' },
         { name: 'Cherry Blossom', value: '#f8bbd9', category: 'Pink' },
-        
+
         // Browns
         { name: 'Chocolate', value: '#5d4037', category: 'Brown' },
         { name: 'Coffee', value: '#6d4c41', category: 'Brown' },
@@ -123,7 +124,7 @@ const WebsiteSettings = () => {
         { name: 'Sienna', value: '#bf360c', category: 'Brown' },
         { name: 'Rust', value: '#d84315', category: 'Brown' },
         { name: 'Mahogany', value: '#4e342e', category: 'Brown' },
-        
+
         // Grays
         { name: 'Charcoal', value: '#424242', category: 'Gray' },
         { name: 'Slate Gray', value: '#607d8b', category: 'Gray' },
@@ -133,7 +134,7 @@ const WebsiteSettings = () => {
         { name: 'Storm Gray', value: '#546e7a', category: 'Gray' },
         { name: 'Pewter', value: '#90a4ae', category: 'Gray' },
         { name: 'Graphite', value: '#37474f', category: 'Gray' },
-        
+
         // Unique Colors
         { name: 'Turquoise', value: '#1de9b6', category: 'Unique' },
         { name: 'Aqua', value: '#18ffff', category: 'Unique' },
@@ -143,7 +144,7 @@ const WebsiteSettings = () => {
         { name: 'Lime', value: '#cddc39', category: 'Unique' },
         { name: 'Electric Purple', value: '#651fff', category: 'Unique' },
         { name: 'Hot Magenta', value: '#ff1744', category: 'Unique' },
-        
+
         // Pastels
         { name: 'Pastel Blue', value: '#bbdefb', category: 'Pastel' },
         { name: 'Pastel Green', value: '#c8e6c9', category: 'Pastel' },
@@ -153,7 +154,7 @@ const WebsiteSettings = () => {
         { name: 'Pastel Orange', value: '#ffccbc', category: 'Pastel' },
         { name: 'Mint Cream', value: '#e0f2f1', category: 'Pastel' },
         { name: 'Lavender Mist', value: '#f3e5f5', category: 'Pastel' },
-        
+
         // Dark Variants
         { name: 'Dark Slate', value: '#263238', category: 'Dark' },
         { name: 'Midnight Blue', value: '#1a237e', category: 'Dark' },
@@ -163,7 +164,7 @@ const WebsiteSettings = () => {
         { name: 'Dark Orange', value: '#e65100', category: 'Dark' },
         { name: 'Dark Teal', value: '#004d40', category: 'Dark' },
         { name: 'Obsidian', value: '#212121', category: 'Dark' },
-        
+
         // Light Variants
         { name: 'Light Blue', value: '#e3f2fd', category: 'Light' },
         { name: 'Light Green', value: '#e8f5e8', category: 'Light' },
@@ -187,14 +188,20 @@ const WebsiteSettings = () => {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.config) {
-                    setSettings(data.config);
+                    setSettings({
+                        websiteName: data.config.websiteName || 'B2B-eCommerce',
+                        websiteLogo: data.config.websiteLogo || '/logos.png',
+                        colorTheme: data.config.colorTheme || '#1976d2',
+                        fontColor: data.config.fontColor || 'white'
+                    });
                     setLogoPreview(data.config.websiteLogo);
                 } else {
                     // Set default values if no config found
                     setSettings({
                         websiteName: 'B2B-eCommerce',
                         websiteLogo: '/logos.png',
-                        colorTheme: '#1976d2'
+                        colorTheme: '#1976d2',
+                        fontColor: 'white'
                     });
                     setLogoPreview('/logos.png');
                 }
@@ -230,7 +237,7 @@ const WebsiteSettings = () => {
             }
 
             setLogoFile(file);
-            
+
             // Create preview
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -267,9 +274,9 @@ const WebsiteSettings = () => {
     const handleSave = async () => {
         try {
             setSaving(true);
-            
+
             let logoUrl = settings.websiteLogo;
-            
+
             // Upload new logo if selected
             if (logoFile) {
                 logoUrl = await uploadLogo();
@@ -278,7 +285,8 @@ const WebsiteSettings = () => {
             const updatedSettings = {
                 websiteName: settings.websiteName,
                 websiteLogo: logoUrl,
-                colorTheme: settings.colorTheme
+                colorTheme: settings.colorTheme,
+                fontColor: settings.fontColor
             };
 
             const response = await fetch('/api/admin/website-config', {
@@ -313,7 +321,8 @@ const WebsiteSettings = () => {
         setSettings({
             websiteName: 'B2B-eCommerce',
             websiteLogo: '/logos.png',
-            colorTheme: '#1976d2'
+            colorTheme: '#1976d2',
+            fontColor: 'white'
         });
         setLogoPreview('/logos.png');
         setLogoFile(null);
@@ -346,8 +355,8 @@ const WebsiteSettings = () => {
     return (
         <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
             {alert.show && (
-                <Alert 
-                    severity={alert.type} 
+                <Alert
+                    severity={alert.type}
                     sx={{ mb: 2 }}
                     onClose={() => setAlert({ show: false, type: '', message: '' })}
                 >
@@ -389,11 +398,11 @@ const WebsiteSettings = () => {
                                 <ImageIcon />
                                 Website Logo
                             </Typography>
-                            <Paper 
-                                elevation={1} 
-                                sx={{ 
-                                    p: 3, 
-                                    border: '2px dashed #ccc', 
+                            <Paper
+                                elevation={1}
+                                sx={{
+                                    p: 3,
+                                    border: '2px dashed #ccc',
                                     textAlign: 'center',
                                     backgroundColor: '#fafafa',
                                     borderRadius: 2
@@ -403,16 +412,16 @@ const WebsiteSettings = () => {
                                     <Avatar
                                         src={logoPreview}
                                         alt="Logo Preview"
-                                        sx={{ 
-                                            width: 100, 
-                                            height: 100, 
+                                        sx={{
+                                            width: 100,
+                                            height: 100,
                                             mx: 'auto',
                                             border: '3px solid #ddd',
                                             boxShadow: 2
                                         }}
                                     />
                                 </Box>
-                                
+
                                 <input
                                     accept="image/*"
                                     style={{ display: 'none' }}
@@ -435,9 +444,9 @@ const WebsiteSettings = () => {
                                     Upload an image file (PNG, JPG, GIF, WebP) - Max 5MB
                                 </Typography>
                                 {logoFile && (
-                                    <Chip 
-                                        label={`Selected: ${logoFile.name}`} 
-                                        color="success" 
+                                    <Chip
+                                        label={`Selected: ${logoFile.name}`}
+                                        color="success"
                                         sx={{ mt: 1 }}
                                         size="small"
                                     />
@@ -450,12 +459,12 @@ const WebsiteSettings = () => {
                             <Typography variant="h6" gutterBottom>
                                 Current Theme Preview
                             </Typography>
-                            <Paper 
-                                elevation={3} 
-                                sx={{ 
-                                    p: 3, 
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    p: 3,
                                     backgroundColor: settings.colorTheme,
-                                    color: 'white',
+                                    color: settings.fontColor,
                                     textAlign: 'center',
                                     borderRadius: 2,
                                     minHeight: 150,
@@ -470,12 +479,12 @@ const WebsiteSettings = () => {
                                 <Typography variant="body1">
                                     This is how your theme will look
                                 </Typography>
-                                <Chip 
-                                    label={settings.colorTheme.toUpperCase()} 
-                                    sx={{ 
-                                        mt: 1, 
+                                <Chip
+                                    label={settings.colorTheme.toUpperCase()}
+                                    sx={{
+                                        mt: 1,
                                         backgroundColor: 'rgba(255,255,255,0.2)',
-                                        color: 'white'
+                                        color: settings.fontColor
                                     }}
                                 />
                             </Paper>
@@ -521,6 +530,38 @@ const WebsiteSettings = () => {
                             </Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                                 Selected: {colorOptions.find(c => c.value === settings.colorTheme)?.name || 'Custom'} ({settings.colorTheme})
+                            </Typography>
+                        </Grid>
+
+                        {/* Font Color Selection */}
+                        <Grid item xs={12}>
+                            <Typography variant="h6" gutterBottom>
+                                Choose Font Color (30 options)
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {[
+                                    '#FFFFFF', '#000000', '#111111', '#222222', '#333333', '#444444', '#555555', '#666666', '#777777', '#888888',
+                                    '#999999', '#AAAAAA', '#BBBBBB', '#CCCCCC', '#DDDDDD', '#EEEEEE', '#F5F5F5', '#E0E0E0', '#212121', '#424242',
+                                    '#B71C1C', '#880E4F', '#4A148C', '#1A237E', '#0D47A1', '#004D40', '#1B5E20', '#E65100', '#BF360C', '#3E2723'
+                                ].map((color) => (
+                                    <Box
+                                        key={color}
+                                        onClick={() => handleInputChange('fontColor', color)}
+                                        sx={{
+                                            width: 40,
+                                            height: 40,
+                                            backgroundColor: color,
+                                            border: settings.fontColor === color ? '3px solid #000' : '2px solid #fff',
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
+                                            boxShadow: settings.fontColor === color ? '0 0 0 2px #fff, 0 0 0 4px #000' : '0 2px 4px rgba(0,0,0,0.1)',
+                                        }}
+                                        title={color}
+                                    />
+                                ))}
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                Selected Font Color: {settings.fontColor}
                             </Typography>
                         </Grid>
 
