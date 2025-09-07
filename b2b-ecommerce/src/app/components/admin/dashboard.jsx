@@ -44,6 +44,8 @@ import RecentTable from '../../components/admin/RecentTable';
 import ChartCard from '../../components/admin/ChartCard';
 import EmailStatusCard from '../../components/admin/EmailStatusCard';
 import WebsiteSettings from '../../components/admin/WebsiteSettings';
+import AddProductForm from '../../components/admin/AddProductForm.jsx';
+import BlogManagement from '../../components/admin/BlogManagement.jsx'; // Import the new blog component
 
 const drawerWidth = 280;
 
@@ -144,7 +146,7 @@ const AdminDashboard = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [drawerOpen, setDrawerOpen] = useState(!isMobile);
     const [anchorEl, setAnchorEl] = useState(null);
-    const [currentView, setCurrentView] = useState('dashboard'); // State for current view
+    const [currentView, setCurrentView] = useState('dashboard');
 
     const handleDrawerToggle = () => {
         setDrawerOpen(!drawerOpen);
@@ -158,7 +160,6 @@ const AdminDashboard = () => {
         setAnchorEl(null);
     };
 
-    // Responsive drawer behavior
     useEffect(() => {
         if (isMobile) {
             setDrawerOpen(false);
@@ -314,24 +315,22 @@ const AdminDashboard = () => {
         { name: 'Machinery Parts', value: 98 }
     ];
 
-    // Define menu items with their corresponding view names
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, view: 'dashboard' },
         { text: 'Products', icon: <ProductsIcon />, view: 'products' },
+        { text: 'Add Product', icon: <ProductsIcon />, view: 'addProduct' },
         { text: 'Inquiries', icon: <InquiriesIcon />, view: 'inquiries' },
         { text: 'Analytics', icon: <AnalyticsIcon />, view: 'analytics' },
         { text: 'Users', icon: <UsersIcon />, view: 'users' },
-        { text: 'Blog', icon: <BlogIcon />, view: 'blog' },
+        { text: 'Blog Management', icon: <BlogIcon />, view: 'blog' }, // Updated menu item
         { text: 'Website Settings', icon: <SettingsIcon />, view: 'websiteSettings' }
     ];
 
-    // Function to get current view title
     const getCurrentViewTitle = () => {
         const currentMenuItem = menuItems.find(item => item.view === currentView);
         return currentMenuItem ? currentMenuItem.text : 'Dashboard';
     };
 
-    // Function to render current view content
     const renderCurrentView = () => {
         switch (currentView) {
             case 'dashboard':
@@ -436,9 +435,19 @@ const AdminDashboard = () => {
                         <Typography variant="h5" gutterBottom>
                             Products Management
                         </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            Products management functionality will be implemented here.
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                            View and manage products.
                         </Typography>
+                    </Grid>
+                );
+
+            case 'addProduct':
+                return (
+                    <Grid item xs={12}>
+                        <Typography variant="h5" gutterBottom>
+                            Add New Product
+                        </Typography>
+                        <AddProductForm />
                     </Grid>
                 );
 
@@ -481,12 +490,7 @@ const AdminDashboard = () => {
             case 'blog':
                 return (
                     <Grid item xs={12}>
-                        <Typography variant="h5" gutterBottom>
-                            Blog Management
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            Blog management functionality will be implemented here.
-                        </Typography>
+                        <BlogManagement />
                     </Grid>
                 );
 
@@ -516,7 +520,7 @@ const AdminDashboard = () => {
                 {menuItems.map((item, index) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton
-                            onClick={() => setCurrentView(item.view)} // Set current view on click
+                            onClick={() => setCurrentView(item.view)}
                             sx={{
                                 backgroundColor: currentView === item.view ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                                 '&:hover': {
@@ -551,7 +555,6 @@ const AdminDashboard = () => {
             />
 
             <Box sx={{ display: 'flex' }}>
-                {/* App Bar */}
                 <AppBarStyled position="fixed" open={drawerOpen && !isMobile}>
                     <Toolbar>
                         <IconButton
@@ -599,7 +602,6 @@ const AdminDashboard = () => {
                     </Toolbar>
                 </AppBarStyled>
 
-                {/* Profile Menu */}
                 <Menu
                     anchorEl={anchorEl}
                     open={Boolean(anchorEl)}
@@ -612,7 +614,6 @@ const AdminDashboard = () => {
                     <MenuItem onClick={handleProfileMenuClose}>Logout</MenuItem>
                 </Menu>
 
-                {/* Navigation Drawer */}
                 <Drawer
                     sx={{
                         width: drawerWidth,
@@ -630,7 +631,6 @@ const AdminDashboard = () => {
                     {drawer}
                 </Drawer>
 
-                {/* Main Content */}
                 <Main open={drawerOpen && !isMobile}>
                     <DrawerHeader />
 
