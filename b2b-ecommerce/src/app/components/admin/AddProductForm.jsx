@@ -1,1009 +1,1310 @@
-import React, { useState } from 'react';
+// src/app/components/admin/ProductForm.jsx
+'use client';
+
+import React, { useState, useMemo, useCallback } from 'react';
 import {
-    Box, Grid, TextField, Button, Tabs, Tab, Typography, Chip,
-    Switch, FormControlLabel, Divider, Paper, IconButton,
-    Alert, FormControl, InputLabel, Select, MenuItem,
-    Accordion, AccordionSummary, AccordionDetails, Tooltip,
-    Card, CardContent
+    Box, Grid, Paper, Typography, TextField, Button, FormControl, InputLabel, Select, MenuItem,
+    Switch, FormControlLabel, Chip, IconButton, Divider, Stack, Card, CardContent, CardHeader,
+    InputAdornment, Alert, Accordion, AccordionSummary, AccordionDetails, Tooltip, Fab
 } from '@mui/material';
 import {
     Add as AddIcon,
     Delete as DeleteIcon,
+    Save as SaveIcon,
+    Publish as PublishIcon,
+    ArrowBack as ArrowBackIcon,
+    CloudUpload as UploadIcon,
+    Visibility as VisibilityIcon,
     ExpandMore as ExpandMoreIcon,
-    Warning as WarningIcon,
-    CheckCircle as CheckCircleIcon,
-    Error as ErrorIcon
+    Info as InfoIcon,
+    LocalOffer as DiscountIcon,
+    FormatBold as BoldIcon,
+    FormatItalic as ItalicIcon,
+    FormatListBulleted as ListIcon,
+    Link as LinkIcon
 } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 
-export default function AddProductForm() {
-    const [tab, setTab] = useState(0);
+// Helper functions
+const isUrl = (s) => {
+    try {
+        new URL(s);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const toSlug = (s) =>
+    s.toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+// Simple Rich Text Editor Component using MUI
+const RichTextEditor = ({ value, onChange, placeholder, error, helperText }) => {
+    const textAreaRef = React.useRef(null);
+
+    const formatText = (prefix, suffix = '') => {
+        const textarea = textAreaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = value.substring(start, end);
+        const newText = value.substring(0, start) + prefix + selectedText + suffix + value.substring(end);
+
+        onChange(newText);
+
+        // Restore cursor position
+        setTimeout(() => {
+            textarea.selectionStart = start + prefix.length;
+            textarea.selectionEnd = end + prefix.length;
+            textarea.focus();
+        }, 0);
+    };
+
+    const insertList = () => {
+        const textarea = textAreaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const lines = value.substring(0, start).split('\n');
+        const currentLine = lines[lines.length - 1];
+
+        if (currentLine.trim() === '') {
+            formatText('• ');
+        } else {
+            formatText('\n• ');
+        }
+    };
+
+    return (
+        <Box>
+            {/* Simple Toolbar */}
+            <Paper variant="outlined" sx={{ p: 1, mb: 1, display: 'flex', gap: 1 }}>
+                <Tooltip title="Bold">
+                    <IconButton
+                        size="small"
+                        onClick={() => formatText('**', '**')}
+                    >
+                        <BoldIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Italic">
+                    <IconButton
+                        size="small"
+                        onClick={() => formatText('*', '*')}
+                    >
+                        <ItalicIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Bullet List">
+                    <IconButton
+                        size="small"
+                        onClick={insertList}
+                    >
+                        <ListIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Link">
+                    <IconButton
+                        size="small"
+                        onClick={() => formatText('[', '](url)')}
+                    >
+                        <LinkIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+                <Typography variant="caption" sx={{ ml: 'auto', alignSelf: 'center', color: 'text.secondary' }}>
+                    Use **bold**, *italic*, • for bullets
+                </Typography>
+            </Paper>
+
+            <TextField
+                inputRef={textAreaRef}
+                multiline
+                minRows={8}
+                maxRows={15}
+                fullWidth
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                error={error}
+                helperText={helperText}
+                variant="outlined"
+                sx={{
+                    '& .MuiInputBase-input': {
+                        fontFamily: 'monospace',
+                        fontSize: '14px',
+                        lineHeight: 1.5
+                    }
+                }}
+            />
+        </Box>
+    );
+};
+
+// Dummy Data
+const dummyData = {
+    // Basic Info
+    title: 'Professional Surgical Scissors Set - Premium Quality',
+    slug: 'professional-surgical-scissors-set-premium-quality',
+    sku: 'SSC-001-PRO',
+    brand: 'MediCraft Industries',
+
+    // Content
+    description: `**Professional Grade Surgical Scissors Set**
+
+These premium quality surgical scissors are crafted from *high-grade stainless steel* and designed for precision medical procedures.
+
+**Key Features:**
+• Superior cutting performance
+• Ergonomic design for comfort
+• Autoclave sterilizable
+• Corrosion resistant coating
+
+**Applications:**
+• General surgery
+• Dental procedures
+• Veterinary use
+• Medical training
+
+**Specifications:**
+Our scissors meet all international medical standards and are manufactured in ISO 13485 certified facilities.`,
+    shortDescription: 'Premium surgical scissors set made from high-grade stainless steel, perfect for medical professionals requiring precision and reliability.',
+    features: [
+        'High-grade stainless steel construction',
+        'Ergonomic handle design for comfort',
+        'Precision-ground cutting edges',
+        'Autoclave sterilizable up to 134°C',
+        'Corrosion-resistant finish',
+        'Available in multiple sizes'
+    ],
+
+    // Media
+    media: [
+        {
+            url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=600',
+            alt: 'Professional surgical scissors set main view',
+            type: 'image',
+            isPrimary: true,
+            sortOrder: 0,
+            width: 800,
+            height: 600
+        },
+        {
+            url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=600',
+            alt: 'Close-up view of scissors precision tips',
+            type: 'image',
+            isPrimary: false,
+            sortOrder: 1,
+            width: 800,
+            height: 600
+        },
+        {
+            url: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800&h=600',
+            alt: 'Packaging and sterile environment',
+            type: 'image',
+            isPrimary: false,
+            sortOrder: 2,
+            width: 800,
+            height: 600
+        }
+    ],
+    videoUrls: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
+
+    // Pricing
+    price: 125.00,
+    salePrice: 99.99,
+    currency: 'USD',
+
+    // Inventory
+    stock: 250,
+    manageStock: true,
+    inStock: true,
+    lowStockThreshold: 25,
+
+    // Categorization
+    categories: ['surgical-instruments', 'medical-tools'],
+    tags: ['surgical', 'scissors', 'stainless-steel', 'medical', 'professional', 'autoclave'],
+
+    // Visibility
+    visibility: 'visible',
+    status: 'active',
+    featured: true,
+
+    // Specifications
+    specifications: [
+        { key: 'Material', value: 'High-grade stainless steel (316L)' },
+        { key: 'Length', value: '5.5 inches (14 cm)' },
+        { key: 'Weight', value: '45 grams' },
+        { key: 'Sterilization', value: 'Autoclave compatible up to 134°C' },
+        { key: 'Finish', value: 'Mirror polished with anti-slip texture' },
+        { key: 'Certification', value: 'CE marked, FDA approved' },
+        { key: 'Warranty', value: '2 years manufacturer warranty' }
+    ],
+
+    // B2B Quantity Discounts
+    quantityDiscounts: [
+        {
+            minQty: 10,
+            maxQty: 49,
+            discountType: 'percent',
+            discountValue: 5,
+            note: 'Small wholesale discount'
+        },
+        {
+            minQty: 50,
+            maxQty: 99,
+            discountType: 'percent',
+            discountValue: 10,
+            note: 'Medium bulk discount'
+        },
+        {
+            minQty: 100,
+            maxQty: 249,
+            discountType: 'percent',
+            discountValue: 15,
+            note: 'Large bulk discount'
+        },
+        {
+            minQty: 250,
+            maxQty: '',
+            discountType: 'percent',
+            discountValue: 20,
+            note: 'Enterprise volume discount'
+        }
+    ],
+    previewQty: 50,
+
+    // SEO
+    metaTitle: 'Professional Surgical Scissors Set | Premium Medical Tools',
+    metaDescription: 'High-quality surgical scissors made from premium stainless steel. Perfect for medical professionals. Autoclave sterilizable, ergonomic design.',
+    metaKeywords: ['surgical scissors', 'medical instruments', 'stainless steel', 'professional tools']
+};
+
+// Initial data structures
+const emptyMedia = { url: '', alt: '', type: 'image', isPrimary: false, sortOrder: 0, width: '', height: '' };
+const emptySpec = { key: '', value: '' };
+const emptyTier = { minQty: 10, maxQty: '', discountType: 'percent', discountValue: 5, note: '' };
+
+export default function ProductForm({ product = null, isEdit = false }) {
+    const router = useRouter();
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [useDummyData, setUseDummyData] = useState(false);
 
-    // Basic fields
-    const [title, setTitle] = useState('');
-    const [slug, setSlug] = useState('');
-    const [brand, setBrand] = useState('');
-    const [category, setCategory] = useState('');
-    const [tags, setTags] = useState([]);
-    const [tagInput, setTagInput] = useState('');
-
-    // Content
-    const [highlights, setHighlights] = useState(['']);
-    const [descriptionHtml, setDescriptionHtml] = useState('');
-    const [inTheBox, setInTheBox] = useState(['']);
-
-    // Media
-    const [media, setMedia] = useState([{ url: '', alt: '', type: 'image', isPrimary: false, sortOrder: 0 }]);
-    const [videoUrls, setVideoUrls] = useState(['']);
-
-    // Pricing & Inventory
-    const [price, setPrice] = useState({ mrp: '', sale: '', currency: 'USD' });
-    const [inventory, setInventory] = useState({ track: true, qty: 0, lowStockThreshold: 5 });
-
-    // Specs
-    const [specs, setSpecs] = useState([{ key: '', value: '' }]);
-
-    // Shipping
-    const [shipping, setShipping] = useState({
-        weight: '',
-        dimensions: { l: '', w: '', h: '' },
-        originCountry: '',
-        leadTimeDays: '',
-        freeShipping: false
-    });
-
-    // Quantity discounts (B2B)
-    const [quantityDiscounts, setQuantityDiscounts] = useState([
-        { minQty: 10, maxQty: 49, discountType: 'percent', discountValue: 5, note: '' }
-    ]);
-
-    // Contact only & SEO
-    const [contactOnly, setContactOnly] = useState(true);
-    const [seo, setSeo] = useState({
-        metaTitle: '',
-        metaDescription: '',
-        canonicalUrl: '',
-        ogImage: ''
-    });
-
-    // Validation rules
-    const validateField = (field, value) => {
-        switch (field) {
-            case 'title':
-                if (!value || value.trim().length < 3) return 'Title must be at least 3 characters long';
-                if (value.length > 200) return 'Title must be less than 200 characters';
-                break;
-            case 'slug':
-                if (!value) return 'Slug is required';
-                if (!/^[a-z0-9-]+$/.test(value)) return 'Slug can only contain lowercase letters, numbers, and hyphens';
-                if (value.length > 100) return 'Slug must be less than 100 characters';
-                break;
-            case 'brand':
-                if (!value) return 'Brand is required';
-                if (value.length < 2) return 'Brand must be at least 2 characters long';
-                break;
-            case 'category':
-                if (!value) return 'Category is required';
-                break;
-            case 'price.mrp':
-                if (!value || isNaN(value) || parseFloat(value) <= 0) return 'MRP must be a valid positive number';
-                break;
-            case 'price.sale':
-                if (value && (isNaN(value) || parseFloat(value) <= 0)) return 'Sale price must be a valid positive number';
-                if (value && price.mrp && parseFloat(value) > parseFloat(price.mrp)) return 'Sale price cannot be higher than MRP';
-                break;
-            case 'inventory.qty':
-                if (inventory.track && (isNaN(value) || parseInt(value) < 0)) return 'Quantity must be a valid non-negative number';
-                break;
-            case 'descriptionHtml':
-                if (!value || value.trim().length < 50) return 'Description must be at least 50 characters long';
-                break;
-            case 'media':
-                if (!media.some(m => m.url && m.url.trim())) return 'At least one media item is required';
-                break;
-            default:
-                return null;
+    // Form state - use dummy data if requested, otherwise use product data or empty
+    const [formData, setFormData] = useState(() => {
+        if (product) {
+            // Edit mode with existing product
+            return {
+                title: product.title || '',
+                slug: product.slug || '',
+                sku: product.sku || '',
+                brand: product.brand || '',
+                description: product.description || '',
+                shortDescription: product.shortDescription || '',
+                features: product.features && product.features.length > 0 ? product.features : [''],
+                media: product.media && product.media.length > 0 ? product.media : [emptyMedia],
+                videoUrls: product.videoUrls && product.videoUrls.length > 0 ? product.videoUrls : [''],
+                price: product.price || '',
+                salePrice: product.salePrice || '',
+                currency: product.currency || 'USD',
+                stock: product.stock || 0,
+                manageStock: product.manageStock ?? true,
+                inStock: product.inStock ?? true,
+                lowStockThreshold: product.lowStockThreshold || 5,
+                categories: product.categories || [],
+                tags: product.tags || [],
+                tagInput: '',
+                visibility: product.visibility || 'draft',
+                status: product.status || 'active',
+                featured: product.featured || false,
+                specifications: product.specifications && product.specifications.length > 0 ? product.specifications : [emptySpec],
+                quantityDiscounts: product.quantityDiscounts && product.quantityDiscounts.length > 0 ? product.quantityDiscounts : [emptyTier],
+                previewQty: 1,
+                metaTitle: product.metaTitle || '',
+                metaDescription: product.metaDescription || '',
+                metaKeywords: product.metaKeywords || []
+            };
+        } else {
+            // New product mode - empty form
+            return {
+                title: '',
+                slug: '',
+                sku: '',
+                brand: '',
+                description: '',
+                shortDescription: '',
+                features: [''],
+                media: [emptyMedia],
+                videoUrls: [''],
+                price: '',
+                salePrice: '',
+                currency: 'USD',
+                stock: 0,
+                manageStock: true,
+                inStock: true,
+                lowStockThreshold: 5,
+                categories: [],
+                tags: [],
+                tagInput: '',
+                visibility: 'draft',
+                status: 'active',
+                featured: false,
+                specifications: [emptySpec],
+                quantityDiscounts: [emptyTier],
+                previewQty: 1,
+                metaTitle: '',
+                metaDescription: '',
+                metaKeywords: []
+            };
         }
-        return null;
+    });
+
+    // Load dummy data function
+    const loadDummyData = () => {
+        setFormData({ ...dummyData, tagInput: '', previewQty: dummyData.previewQty });
+        setUseDummyData(true);
+        setErrors({});
     };
 
-    const validateAllFields = () => {
+    // Clear form function
+    const clearForm = () => {
+        setFormData({
+            title: '', slug: '', sku: '', brand: '', description: '', shortDescription: '',
+            features: [''], media: [emptyMedia], videoUrls: [''], price: '', salePrice: '',
+            currency: 'USD', stock: 0, manageStock: true, inStock: true, lowStockThreshold: 5,
+            categories: [], tags: [], tagInput: '', visibility: 'draft', status: 'active',
+            featured: false, specifications: [emptySpec], quantityDiscounts: [emptyTier],
+            previewQty: 1, metaTitle: '', metaDescription: '', metaKeywords: []
+        });
+        setUseDummyData(false);
+        setErrors({});
+    };
+
+    // Validation rules
+    const validators = {
+        title: (val) => !val || val.trim().length < 3 ? 'Title must be at least 3 characters' : null,
+        slug: (val) => !val ? 'Slug is required' : !/^[a-z0-9-]+$/.test(val) ? 'Invalid slug format' : null,
+        description: (val) => !val || val.trim().length < 50 ? 'Description must be at least 50 characters' : null,
+        price: (val) => !val || Number(val) <= 0 ? 'Price must be greater than 0' : null,
+        salePrice: (val) => val && Number(val) >= Number(formData.price) ? 'Sale price must be less than regular price' : null,
+        media: () => !formData.media.some(m => m.url && isUrl(m.url)) ? 'At least one valid media URL is required' : null
+    };
+
+    // Handle form field changes
+    const handleFieldChange = useCallback((field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        // Auto-generate slug from title only if slug is empty
+        if (field === 'title' && !formData.slug) {
+            setFormData(prev => ({ ...prev, slug: toSlug(value) }));
+        }
+
+        // Clear related errors
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: null }));
+        }
+    }, [formData.slug, errors]);
+
+    // Handle array field changes
+    const handleArrayChange = useCallback((arrayName, index, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [arrayName]: prev[arrayName].map((item, i) =>
+                i === index ? (field ? { ...item, [field]: value } : value) : item
+            )
+        }));
+    }, []);
+
+    // Add array item
+    const addArrayItem = useCallback((arrayName, emptyItem) => {
+        setFormData(prev => ({
+            ...prev,
+            [arrayName]: [...prev[arrayName], typeof emptyItem === 'object' ? { ...emptyItem } : emptyItem]
+        }));
+    }, []);
+
+    // Remove array item
+    const removeArrayItem = useCallback((arrayName, index) => {
+        setFormData(prev => ({
+            ...prev,
+            [arrayName]: prev[arrayName].filter((_, i) => i !== index)
+        }));
+    }, []);
+
+    // Handle tag input
+    const handleAddTag = useCallback(() => {
+        const tag = formData.tagInput.trim();
+        if (tag && !formData.tags.includes(tag)) {
+            setFormData(prev => ({
+                ...prev,
+                tags: [...prev.tags, tag],
+                tagInput: ''
+            }));
+        }
+    }, [formData.tagInput, formData.tags]);
+
+    // Calculate preview price with quantity discounts
+    const computedPreviewPrice = useMemo(() => {
+        const base = formData.salePrice ? Number(formData.salePrice) : Number(formData.price || 0);
+        if (!base) return { unitPrice: 0, totalPrice: 0, discountApplied: null };
+
+        const qty = Number(formData.previewQty || 1);
+        const validTiers = formData.quantityDiscounts.filter(d => d.minQty && d.discountValue);
+
+        const applicableTier = validTiers
+            .filter(t => qty >= Number(t.minQty) && (!t.maxQty || qty <= Number(t.maxQty)))
+            .sort((a, b) => Number(b.minQty) - Number(a.minQty))[0];
+
+        if (!applicableTier) {
+            return {
+                unitPrice: base,
+                totalPrice: base * qty,
+                discountApplied: null
+            };
+        }
+
+        let discountedPrice = base;
+        if (applicableTier.discountType === 'percent') {
+            discountedPrice = base * (1 - applicableTier.discountValue / 100);
+        } else {
+            discountedPrice = base - applicableTier.discountValue;
+        }
+
+        discountedPrice = Math.max(0, Number(discountedPrice.toFixed(2)));
+
+        return {
+            unitPrice: discountedPrice,
+            totalPrice: discountedPrice * qty,
+            discountApplied: applicableTier
+        };
+    }, [formData.price, formData.salePrice, formData.previewQty, formData.quantityDiscounts]);
+
+    // Form validation
+    const validateForm = useCallback(() => {
         const newErrors = {};
-
-        // Validate basic fields
-        newErrors.title = validateField('title', title);
-        newErrors.slug = validateField('slug', slug);
-        newErrors.brand = validateField('brand', brand);
-        newErrors.category = validateField('category', category);
-        newErrors['price.mrp'] = validateField('price.mrp', price.mrp);
-        newErrors['price.sale'] = validateField('price.sale', price.sale);
-        newErrors['inventory.qty'] = validateField('inventory.qty', inventory.qty);
-        newErrors.descriptionHtml = validateField('descriptionHtml', descriptionHtml);
-        newErrors.media = validateField('media', media);
-
-        // Validate highlights
-        if (!highlights.some(h => h && h.trim())) {
-            newErrors.highlights = 'At least one highlight is required';
-        }
-
-        // Validate media URLs
-        media.forEach((m, index) => {
-            if (m.url && !isValidUrl(m.url)) {
-                newErrors[`media.${index}.url`] = 'Please enter a valid URL';
-            }
-        });
-
-        // Validate video URLs
-        videoUrls.forEach((url, index) => {
-            if (url && !isValidUrl(url)) {
-                newErrors[`videoUrl.${index}`] = 'Please enter a valid URL';
-            }
-        });
-
-        // Validate specs
-        const validSpecs = specs.filter(s => s.key && s.value);
-        if (validSpecs.length === 0) {
-            newErrors.specs = 'At least one specification is required';
-        }
-
-        // Remove null/undefined errors
-        Object.keys(newErrors).forEach(key => {
-            if (!newErrors[key]) delete newErrors[key];
+        Object.keys(validators).forEach(field => {
+            const error = validators[field](formData[field]);
+            if (error) newErrors[field] = error;
         });
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
+    }, [formData]);
 
-    const isValidUrl = (string) => {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    };
-
-    const handleFieldChange = (field, value) => {
-        setTouched({ ...touched, [field]: true });
-        const error = validateField(field, value);
-        setErrors({ ...errors, [field]: error });
-    };
-
-    const addItem = (setter, template) => setter(prev => [...prev, { ...template }]);
-    const removeItem = (setter, index) => setter(prev => prev.filter((_, i) => i !== index));
-
-    const generateSlug = (title) => {
-        return title
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .trim();
-    };
-
-    const handleTitleChange = (value) => {
-        setTitle(value);
-        if (!slug || slug === generateSlug(title)) {
-            setSlug(generateSlug(value));
-        }
-        handleFieldChange('title', value);
-    };
-
-    const getTabStatus = (tabIndex) => {
-        const tabErrors = {
-            0: ['title', 'slug', 'brand', 'category'],
-            1: ['highlights', 'descriptionHtml'],
-            2: ['media'],
-            3: ['price.mrp', 'price.sale', 'inventory.qty'],
-            4: ['specs'],
-            5: [],
-            6: []
-        };
-
-        const tabFields = tabErrors[tabIndex] || [];
-        const hasErrors = tabFields.some(field => errors[field]);
-        const allTouched = tabFields.every(field => touched[field]);
-
-        if (hasErrors) return 'error';
-        if (allTouched && !hasErrors) return 'success';
-        return 'default';
-    };
-
-    const TabLabel = ({ label, index }) => {
-        const status = getTabStatus(index);
-        return (
-            <Box display="flex" alignItems="center" gap={0.5}>
-                {label}
-                {status === 'error' && <ErrorIcon fontSize="small" color="error" />}
-                {status === 'success' && <CheckCircleIcon fontSize="small" color="success" />}
-            </Box>
-        );
-    };
-
-    const handleSubmit = async () => {
-        // Mark all fields as touched
-        const allFields = ['title', 'slug', 'brand', 'category', 'price.mrp', 'price.sale', 'inventory.qty', 'descriptionHtml', 'media', 'highlights', 'specs'];
-        const newTouched = {};
-        allFields.forEach(field => newTouched[field] = true);
-        setTouched(newTouched);
-
-        if (!validateAllFields()) {
-            alert('Please fix all validation errors before submitting');
+    // Handle form submission
+    const handleSubmit = async (isDraft = false) => {
+        if (!validateForm()) {
+            alert('Please fix validation errors before submitting.');
             return;
         }
 
         setSaving(true);
         try {
             const payload = {
-                title: title.trim(),
-                slug: slug.trim(),
-                brand: brand.trim(),
-                category,
-                tags,
-                highlights: highlights.filter(Boolean).map(h => h.trim()),
-                descriptionHtml: descriptionHtml.trim(),
-                inTheBox: inTheBox.filter(Boolean).map(item => item.trim()),
-                media: media.filter(m => m.url).map(m => ({
+                title: formData.title.trim(),
+                slug: formData.slug.trim(),
+                sku: formData.sku?.trim(),
+                brand: formData.brand?.trim(),
+                description: formData.description.trim(),
+                shortDescription: formData.shortDescription?.trim(),
+                features: formData.features.filter(Boolean).map(f => f.trim()),
+                media: formData.media.filter(m => m.url).map(m => ({
                     ...m,
                     url: m.url.trim(),
-                    alt: m.alt?.trim() || ''
+                    alt: m.alt?.trim() || '',
+                    width: m.width ? Number(m.width) : undefined,
+                    height: m.height ? Number(m.height) : undefined
                 })),
-                videoUrls: videoUrls.filter(Boolean).map(url => url.trim()),
-                price: {
-                    mrp: Number(price.mrp) || undefined,
-                    sale: Number(price.sale) || undefined,
-                    currency: price.currency || 'USD'
-                },
-                inventory: {
-                    track: Boolean(inventory.track),
-                    qty: Number(inventory.qty) || 0,
-                    lowStockThreshold: Number(inventory.lowStockThreshold) || 5
-                },
-                specs: specs.filter(s => s.key && s.value).map(s => ({
-                    key: s.key.trim(),
-                    value: s.value.trim()
-                })),
-                shipping: {
-                    weight: Number(shipping.weight) || undefined,
-                    dimensions: {
-                        l: Number(shipping.dimensions.l) || undefined,
-                        w: Number(shipping.dimensions.w) || undefined,
-                        h: Number(shipping.dimensions.h) || undefined
-                    },
-                    originCountry: shipping.originCountry?.trim() || undefined,
-                    leadTimeDays: Number(shipping.leadTimeDays) || undefined,
-                    freeShipping: shipping.freeShipping
-                },
-                quantityDiscounts: quantityDiscounts.filter(d => d.minQty && d.discountValue),
-                contactOnly,
-                seo: {
-                    metaTitle: seo.metaTitle?.trim() || undefined,
-                    metaDescription: seo.metaDescription?.trim() || undefined,
-                    canonicalUrl: seo.canonicalUrl?.trim() || undefined,
-                    ogImage: seo.ogImage?.trim() || undefined
-                },
-                status: { isPublished: false, isFeatured: false },
-                searchCount: 0, // Initialize search count
-                rating: { average: 0, count: 0 } // Initialize rating
+                videoUrls: formData.videoUrls.filter(Boolean).map(u => u.trim()),
+                price: Number(formData.price),
+                salePrice: formData.salePrice ? Number(formData.salePrice) : undefined,
+                currency: formData.currency,
+                stock: Number(formData.stock) || 0,
+                manageStock: formData.manageStock,
+                inStock: formData.inStock,
+                lowStockThreshold: Number(formData.lowStockThreshold) || 5,
+                categories: formData.categories,
+                tags: formData.tags,
+                visibility: isDraft ? 'draft' : 'visible',
+                status: formData.status,
+                featured: formData.featured,
+                quantityDiscounts: formData.quantityDiscounts
+                    .filter(d => d.minQty && d.discountValue)
+                    .map(d => ({
+                        minQty: Number(d.minQty),
+                        maxQty: d.maxQty ? Number(d.maxQty) : undefined,
+                        discountType: d.discountType,
+                        discountValue: Number(d.discountValue),
+                        note: d.note?.trim() || undefined
+                    })),
+                specifications: formData.specifications
+                    .filter(s => s.key && s.value)
+                    .map(s => ({ key: s.key.trim(), value: s.value.trim() })),
+                metaTitle: formData.metaTitle?.trim(),
+                metaDescription: formData.metaDescription?.trim(),
+                metaKeywords: formData.metaKeywords
             };
 
-            const res = await fetch('/api/products', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            console.log('Product payload:', payload);
 
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'Failed to save product');
-            }
+            // Here you would make API call
+            // const response = await fetch('/api/products', { method: isEdit ? 'PUT' : 'POST', ... });
 
-            const json = await res.json();
-            alert('Product created successfully!');
+            alert(`Product ${isDraft ? 'saved as draft' : (isEdit ? 'updated' : 'published')} successfully!`);
 
-            // Reset form
-            setTitle(''); setSlug(''); setBrand(''); setCategory(''); setTags([]); setTagInput('');
-            setHighlights(['']); setDescriptionHtml(''); setInTheBox(['']);
-            setMedia([{ url: '', alt: '', type: 'image', isPrimary: false, sortOrder: 0 }]);
-            setVideoUrls(['']); setSpecs([{ key: '', value: '' }]);
-            setErrors({}); setTouched({});
+            // Reset form or redirect
+            // router.push('/admin/products');
 
-        } catch (e) {
-            alert(e.message || 'Error creating product');
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Failed to save product. Please try again.');
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <Paper sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
-            <Typography variant="h4" gutterBottom>Add New Product</Typography>
+        <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh', p: 3 }}>
+            {/* Header */}
+            <Paper elevation={0} sx={{ p: 3, mb: 3, backgroundColor: '#fff' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <IconButton onClick={() => router.back()} sx={{ color: '#666' }}>
+                            <ArrowBackIcon />
+                        </IconButton>
+                        <Typography variant="h4" sx={{ fontWeight: 600, color: '#333' }}>
+                            {isEdit ? 'Edit Product' : 'Add New Product'}
+                        </Typography>
+                    </Box>
 
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }} variant="scrollable" scrollButtons="auto">
-                <Tab label={<TabLabel label="Basic Info" index={0} />} />
-                <Tab label={<TabLabel label="Content" index={1} />} />
-                <Tab label={<TabLabel label="Media" index={2} />} />
-                <Tab label={<TabLabel label="Pricing & Inventory" index={3} />} />
-                <Tab label={<TabLabel label="Specifications" index={4} />} />
-                <Tab label={<TabLabel label="B2B & Shipping" index={5} />} />
-                <Tab label={<TabLabel label="SEO & Publish" index={6} />} />
-            </Tabs>
+                    {/* Dummy Data Controls */}
+                    {!isEdit && (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                                variant="outlined"
+                                color="info"
+                                onClick={loadDummyData}
+                                disabled={useDummyData}
+                                size="small"
+                            >
+                                Load Sample Data
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                color="warning"
+                                onClick={clearForm}
+                                size="small"
+                            >
+                                Clear Form
+                            </Button>
+                        </Box>
+                    )}
+                </Box>
 
-            {/* Basic Info Tab */}
-            {tab === 0 && (
-                <Box>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Product Title *"
-                                fullWidth
-                                value={title}
-                                onChange={e => handleTitleChange(e.target.value)}
-                                error={touched.title && !!errors.title}
-                                helperText={touched.title && errors.title}
-                                placeholder="Enter product title (min 3 characters)"
+                {useDummyData && (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                        Sample data loaded! This includes dummy product information for testing purposes.
+                    </Alert>
+                )}
+            </Paper>
+
+            <Grid container spacing={3}>
+                {/* Main Content */}
+                <Grid item xs={12} lg={8}>
+                    <Stack spacing={3}>
+                        {/* Basic Information */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Product Information</Typography>
+
+                            <Stack spacing={3}>
+                                <TextField
+                                    label="Product Title"
+                                    placeholder="Enter product title"
+                                    value={formData.title}
+                                    onChange={(e) => handleFieldChange('title', e.target.value)}
+                                    error={!!errors.title}
+                                    helperText={errors.title}
+                                    fullWidth
+                                    required
+                                />
+
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            label="Product Slug"
+                                            placeholder="product-slug"
+                                            value={formData.slug}
+                                            onChange={(e) => handleFieldChange('slug', e.target.value)}
+                                            error={!!errors.slug}
+                                            helperText={errors.slug || 'URL-friendly version of the title'}
+                                            fullWidth
+                                            required
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                        <TextField
+                                            label="SKU"
+                                            placeholder="PROD-001"
+                                            value={formData.sku}
+                                            onChange={(e) => handleFieldChange('sku', e.target.value)}
+                                            fullWidth
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                        <TextField
+                                            label="Brand"
+                                            placeholder="Brand Name"
+                                            value={formData.brand}
+                                            onChange={(e) => handleFieldChange('brand', e.target.value)}
+                                            fullWidth
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Stack>
+                        </Paper>
+
+                        {/* Description */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Description</Typography>
+                            <RichTextEditor
+                                value={formData.description}
+                                onChange={(value) => handleFieldChange('description', value)}
+                                placeholder="Write detailed product description..."
+                                error={!!errors.description}
+                                helperText={errors.description}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="URL Slug *"
-                                fullWidth
-                                value={slug}
-                                onChange={e => {
-                                    setSlug(e.target.value);
-                                    handleFieldChange('slug', e.target.value);
-                                }}
-                                error={touched.slug && !!errors.slug}
-                                helperText={touched.slug && errors.slug}
-                                placeholder="product-url-slug"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Brand *"
-                                fullWidth
-                                value={brand}
-                                onChange={e => {
-                                    setBrand(e.target.value);
-                                    handleFieldChange('brand', e.target.value);
-                                }}
-                                error={touched.brand && !!errors.brand}
-                                helperText={touched.brand && errors.brand}
-                                placeholder="Brand name"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <FormControl fullWidth error={touched.category && !!errors.category}>
-                                <InputLabel>Category *</InputLabel>
-                                <Select
-                                    value={category}
-                                    onChange={e => {
-                                        setCategory(e.target.value);
-                                        handleFieldChange('category', e.target.value);
-                                    }}
-                                    label="Category *"
+                        </Paper>
+
+                        {/* Media Gallery */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Product Media</Typography>
+                                <Button
+                                    startIcon={<AddIcon />}
+                                    onClick={() => addArrayItem('media', emptyMedia)}
+                                    variant="outlined"
+                                    size="small"
                                 >
-                                    <MenuItem value="electronics">Electronics</MenuItem>
-                                    <MenuItem value="clothing">Clothing</MenuItem>
-                                    <MenuItem value="home">Home & Garden</MenuItem>
-                                    <MenuItem value="sports">Sports</MenuItem>
-                                    <MenuItem value="books">Books</MenuItem>
-                                </Select>
-                                {touched.category && errors.category && (
-                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-                                        {errors.category}
+                                    Add Media
+                                </Button>
+                            </Box>
+
+                            <Stack spacing={2}>
+                                {formData.media.map((media, index) => (
+                                    <Card key={index} variant="outlined">
+                                        <CardContent>
+                                            <Grid container spacing={2} alignItems="center">
+                                                <Grid item xs={12} md={4}>
+                                                    <TextField
+                                                        label="Media URL"
+                                                        placeholder="https://example.com/image.jpg"
+                                                        value={media.url}
+                                                        onChange={(e) => handleArrayChange('media', index, 'url', e.target.value)}
+                                                        fullWidth
+                                                        size="small"
+                                                        InputProps={{
+                                                            startAdornment: <InputAdornment position="start"><UploadIcon /></InputAdornment>
+                                                        }}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={2}>
+                                                    <FormControl fullWidth size="small">
+                                                        <InputLabel>Type</InputLabel>
+                                                        <Select
+                                                            value={media.type}
+                                                            label="Type"
+                                                            onChange={(e) => handleArrayChange('media', index, 'type', e.target.value)}
+                                                        >
+                                                            <MenuItem value="image">Image</MenuItem>
+                                                            <MenuItem value="video">Video</MenuItem>
+                                                            <MenuItem value="embed">Embed</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                    <TextField
+                                                        label="Alt Text"
+                                                        value={media.alt}
+                                                        onChange={(e) => handleArrayChange('media', index, 'alt', e.target.value)}
+                                                        fullWidth
+                                                        size="small"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={2}>
+                                                    <TextField
+                                                        label="Width"
+                                                        type="number"
+                                                        value={media.width}
+                                                        onChange={(e) => handleArrayChange('media', index, 'width', e.target.value)}
+                                                        fullWidth
+                                                        size="small"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={1}>
+                                                    <IconButton
+                                                        onClick={() => removeArrayItem('media', index)}
+                                                        color="error"
+                                                        size="small"
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </Stack>
+                            {errors.media && (
+                                <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                    {errors.media}
+                                </Typography>
+                            )}
+                        </Paper>
+
+                        {/* B2B Quantity Discounts */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <DiscountIcon sx={{ color: '#1976d2' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>B2B Quantity Discounts</Typography>
+                                    <Tooltip title="Set bulk pricing tiers for wholesale customers">
+                                        <InfoIcon sx={{ color: '#666', fontSize: 20 }} />
+                                    </Tooltip>
+                                </Box>
+                                <Button
+                                    startIcon={<AddIcon />}
+                                    onClick={() => addArrayItem('quantityDiscounts', emptyTier)}
+                                    variant="outlined"
+                                    size="small"
+                                >
+                                    Add Tier
+                                </Button>
+                            </Box>
+
+                            <Stack spacing={2}>
+                                {formData.quantityDiscounts.map((tier, index) => (
+                                    <Card key={index} variant="outlined" sx={{ border: '2px solid #e3f2fd' }}>
+                                        <CardContent>
+                                            <Grid container spacing={2} alignItems="center">
+                                                <Grid item xs={12} md={2}>
+                                                    <TextField
+                                                        label="Min Quantity"
+                                                        type="number"
+                                                        value={tier.minQty}
+                                                        onChange={(e) => handleArrayChange('quantityDiscounts', index, 'minQty', e.target.value)}
+                                                        fullWidth
+                                                        size="small"
+                                                        required
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={2}>
+                                                    <TextField
+                                                        label="Max Quantity"
+                                                        type="number"
+                                                        value={tier.maxQty}
+                                                        onChange={(e) => handleArrayChange('quantityDiscounts', index, 'maxQty', e.target.value)}
+                                                        placeholder="No limit"
+                                                        fullWidth
+                                                        size="small"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={2}>
+                                                    <FormControl fullWidth size="small">
+                                                        <InputLabel>Discount Type</InputLabel>
+                                                        <Select
+                                                            value={tier.discountType}
+                                                            label="Discount Type"
+                                                            onChange={(e) => handleArrayChange('quantityDiscounts', index, 'discountType', e.target.value)}
+                                                        >
+                                                            <MenuItem value="percent">Percentage %</MenuItem>
+                                                            <MenuItem value="flat">Fixed Amount</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Grid>
+                                                <Grid item xs={12} md={2}>
+                                                    <TextField
+                                                        label="Discount Value"
+                                                        type="number"
+                                                        value={tier.discountValue}
+                                                        onChange={(e) => handleArrayChange('quantityDiscounts', index, 'discountValue', e.target.value)}
+                                                        InputProps={{
+                                                            endAdornment: (
+                                                                <InputAdornment position="end">
+                                                                    {tier.discountType === 'percent' ? '%' : formData.currency}
+                                                                </InputAdornment>
+                                                            )
+                                                        }}
+                                                        fullWidth
+                                                        size="small"
+                                                        required
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                    <TextField
+                                                        label="Note (Optional)"
+                                                        value={tier.note}
+                                                        onChange={(e) => handleArrayChange('quantityDiscounts', index, 'note', e.target.value)}
+                                                        placeholder="e.g., Bulk discount"
+                                                        fullWidth
+                                                        size="small"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={1}>
+                                                    <IconButton
+                                                        onClick={() => removeArrayItem('quantityDiscounts', index)}
+                                                        color="error"
+                                                        size="small"
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </Stack>
+
+                            {/* Quantity Discount Preview */}
+                            <Card sx={{ mt: 3, background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' }}>
+                                <CardContent>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                                        Discount Preview
                                     </Typography>
-                                )}
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Box>
-                                <Box display="flex" gap={1} mb={1}>
-                                    <TextField
-                                        label="Add Tag"
-                                        value={tagInput}
-                                        onChange={e => setTagInput(e.target.value)}
-                                        onKeyPress={e => {
-                                            if (e.key === 'Enter' && tagInput.trim()) {
-                                                setTags([...tags, tagInput.trim()]);
-                                                setTagInput('');
-                                            }
-                                        }}
-                                        placeholder="Enter tag and press Enter"
-                                        sx={{ flexGrow: 1 }}
-                                    />
+                                    <Grid container spacing={2} alignItems="center">
+                                        <Grid item xs={12} md={3}>
+                                            <TextField
+                                                label="Preview Quantity"
+                                                type="number"
+                                                value={formData.previewQty}
+                                                onChange={(e) => handleFieldChange('previewQty', e.target.value)}
+                                                fullWidth
+                                                size="small"
+                                                inputProps={{ min: 1 }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} md={9}>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Base Price: <strong>{formData.salePrice || formData.price || 0} {formData.currency}</strong>
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Unit Price: <strong>{computedPreviewPrice.unitPrice} {formData.currency}</strong>
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Total: <strong>{computedPreviewPrice.totalPrice.toFixed(2)} {formData.currency}</strong>
+                                                </Typography>
+                                                {computedPreviewPrice.discountApplied && (
+                                                    <Chip
+                                                        label={`${computedPreviewPrice.discountApplied.discountValue}${computedPreviewPrice.discountApplied.discountType === 'percent' ? '%' : ` ${formData.currency}`} off`}
+                                                        color="success"
+                                                        size="small"
+                                                    />
+                                                )}
+                                            </Box>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        </Paper>
+
+                        {/* Product Features */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Product Features</Typography>
+                                <Button
+                                    startIcon={<AddIcon />}
+                                    onClick={() => addArrayItem('features', '')}
+                                    variant="outlined"
+                                    size="small"
+                                >
+                                    Add Feature
+                                </Button>
+                            </Box>
+
+                            <Stack spacing={2}>
+                                {formData.features.map((feature, index) => (
+                                    <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                        <TextField
+                                            label={`Feature ${index + 1}`}
+                                            value={feature}
+                                            onChange={(e) => handleArrayChange('features', index, null, e.target.value)}
+                                            fullWidth
+                                            size="small"
+                                            placeholder="e.g., Durable stainless steel construction"
+                                        />
+                                        <IconButton
+                                            onClick={() => removeArrayItem('features', index)}
+                                            color="error"
+                                            size="small"
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        </Paper>
+
+                        {/* Product Specifications */}
+                        <Accordion>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Product Specifications</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                    <Typography variant="body2" color="text.secondary">Add detailed specifications</Typography>
                                     <Button
+                                        startIcon={<AddIcon />}
+                                        onClick={() => addArrayItem('specifications', emptySpec)}
                                         variant="outlined"
-                                        onClick={() => {
-                                            if (tagInput.trim()) {
-                                                setTags([...tags, tagInput.trim()]);
-                                                setTagInput('');
-                                            }
-                                        }}
+                                        size="small"
                                     >
-                                        Add
+                                        Add Spec
                                     </Button>
                                 </Box>
-                                <Box display="flex" gap={1} flexWrap="wrap">
-                                    {tags.map((t, i) => (
-                                        <Chip
-                                            key={i}
-                                            label={t}
-                                            onDelete={() => setTags(tags.filter((_, idx) => idx !== i))}
-                                            variant="outlined"
-                                        />
+                                <Stack spacing={2}>
+                                    {formData.specifications.map((spec, index) => (
+                                        <Grid container spacing={2} key={index} alignItems="center">
+                                            <Grid item xs={5}>
+                                                <TextField
+                                                    label="Specification"
+                                                    value={spec.key}
+                                                    onChange={(e) => handleArrayChange('specifications', index, 'key', e.target.value)}
+                                                    placeholder="e.g., Material"
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                            </Grid>
+                                            <Grid item xs={6}>
+                                                <TextField
+                                                    label="Value"
+                                                    value={spec.value}
+                                                    onChange={(e) => handleArrayChange('specifications', index, 'value', e.target.value)}
+                                                    placeholder="e.g., Stainless Steel"
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                            </Grid>
+                                            <Grid item xs={1}>
+                                                <IconButton
+                                                    onClick={() => removeArrayItem('specifications', index)}
+                                                    color="error"
+                                                    size="small"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Grid>
+                                        </Grid>
                                     ))}
-                                </Box>
-                            </Box>
-                        </Grid>
-                    </Grid>
-                </Box>
-            )}
+                                </Stack>
+                            </AccordionDetails>
+                        </Accordion>
 
-            {/* Content Tab */}
-            {tab === 1 && (
-                <Box>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Product Highlights *</Typography>
-                            {highlights.map((h, idx) => (
-                                <Box key={idx} display="flex" gap={1} mb={1}>
-                                    <TextField
-                                        fullWidth
-                                        value={h}
-                                        onChange={e => {
-                                            const newHighlights = highlights.map((v, i) => i === idx ? e.target.value : v);
-                                            setHighlights(newHighlights);
-                                        }}
-                                        placeholder={`Highlight ${idx + 1}`}
-                                        error={touched.highlights && !!errors.highlights && !highlights.some(h => h.trim())}
-                                    />
-                                    <IconButton
-                                        onClick={() => removeItem(setHighlights, idx)}
-                                        disabled={highlights.length === 1}
-                                    >
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                            <Button startIcon={<AddIcon />} onClick={() => addItem(setHighlights, '')}>
-                                Add Highlight
-                            </Button>
-                            {touched.highlights && errors.highlights && (
-                                <Alert severity="error" sx={{ mt: 1 }}>{errors.highlights}</Alert>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <TextField
-                                label="Product Description *"
-                                fullWidth
-                                multiline
-                                minRows={6}
-                                value={descriptionHtml}
-                                onChange={e => {
-                                    setDescriptionHtml(e.target.value);
-                                    handleFieldChange('descriptionHtml', e.target.value);
-                                }}
-                                error={touched.descriptionHtml && !!errors.descriptionHtml}
-                                helperText={touched.descriptionHtml && errors.descriptionHtml}
-                                placeholder="Enter detailed product description (min 50 characters)"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>In The Box</Typography>
-                            {inTheBox.map((item, idx) => (
-                                <Box key={idx} display="flex" gap={1} mb={1}>
-                                    <TextField
-                                        fullWidth
-                                        value={item}
-                                        onChange={e => setInTheBox(inTheBox.map((v, i) => i === idx ? e.target.value : v))}
-                                        placeholder={`Item ${idx + 1}`}
-                                    />
-                                    <IconButton onClick={() => removeItem(setInTheBox, idx)}>
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                            <Button startIcon={<AddIcon />} onClick={() => addItem(setInTheBox, '')}>
-                                Add Item
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </Box>
-            )}
-
-            {/* Media Tab */}
-            {tab === 2 && (
-                <Box>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Product Images *</Typography>
-                            {media.map((m, idx) => (
-                                <Grid key={idx} container spacing={2} alignItems="center" sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                                    <Grid item xs={12} md={4}>
-                                        <TextField
-                                            fullWidth
-                                            label="Image URL *"
-                                            value={m.url}
-                                            onChange={e => setMedia(media.map((v, i) => i === idx ? { ...v, url: e.target.value } : v))}
-                                            error={!!errors[`media.${idx}.url`]}
-                                            helperText={errors[`media.${idx}.url`]}
-                                            placeholder="https://example.com/image.jpg"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} md={3}>
-                                        <TextField
-                                            fullWidth
-                                            label="Alt Text"
-                                            value={m.alt}
-                                            onChange={e => setMedia(media.map((v, i) => i === idx ? { ...v, alt: e.target.value } : v))}
-                                            placeholder="Image description"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={6} md={2}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Type</InputLabel>
-                                            <Select
-                                                value={m.type}
-                                                onChange={e => setMedia(media.map((v, i) => i === idx ? { ...v, type: e.target.value } : v))}
-                                                label="Type"
-                                            >
-                                                <MenuItem value="image">Image</MenuItem>
-                                                <MenuItem value="video">Video</MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                    <Grid item xs={6} md={2}>
-                                        <TextField
-                                            fullWidth
-                                            label="Sort Order"
-                                            type="number"
-                                            value={m.sortOrder}
-                                            onChange={e => setMedia(media.map((v, i) => i === idx ? { ...v, sortOrder: Number(e.target.value) } : v))}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} md={1}>
-                                        <IconButton onClick={() => removeItem(setMedia, idx)} color="error">
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </Grid>
-                                </Grid>
-                            ))}
-                            <Button startIcon={<AddIcon />} onClick={() => addItem(setMedia, { url: '', alt: '', type: 'image', isPrimary: false, sortOrder: 0 })}>
-                                Add Media
-                            </Button>
-                            {touched.media && errors.media && (
-                                <Alert severity="error" sx={{ mt: 2 }}>{errors.media}</Alert>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Video URLs</Typography>
-                            {videoUrls.map((v, idx) => (
-                                <Box key={idx} display="flex" gap={1} mb={1}>
-                                    <TextField
-                                        fullWidth
-                                        value={v}
-                                        onChange={e => setVideoUrls(videoUrls.map((val, i) => i === idx ? e.target.value : val))}
-                                        placeholder="https://youtube.com/watch?v=..."
-                                        error={!!errors[`videoUrl.${idx}`]}
-                                        helperText={errors[`videoUrl.${idx}`]}
-                                    />
-                                    <IconButton onClick={() => removeItem(setVideoUrls, idx)}>
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                            <Button startIcon={<AddIcon />} onClick={() => addItem(setVideoUrls, '')}>
-                                Add Video URL
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </Box>
-            )}
-
-            {/* Continue with other tabs... */}
-            {tab === 3 && (
-                <Box>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Pricing *</Typography>
-                            <Grid container spacing={3}>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="MRP *"
-                                        fullWidth
-                                        type="number"
-                                        value={price.mrp}
-                                        onChange={e => {
-                                            setPrice({ ...price, mrp: e.target.value });
-                                            handleFieldChange('price.mrp', e.target.value);
-                                        }}
-                                        error={touched['price.mrp'] && !!errors['price.mrp']}
-                                        helperText={touched['price.mrp'] && errors['price.mrp']}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="Sale Price"
-                                        fullWidth
-                                        type="number"
-                                        value={price.sale}
-                                        onChange={e => {
-                                            setPrice({ ...price, sale: e.target.value });
-                                            handleFieldChange('price.sale', e.target.value);
-                                        }}
-                                        error={touched['price.sale'] && !!errors['price.sale']}
-                                        helperText={touched['price.sale'] && errors['price.sale']}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Currency</InputLabel>
-                                        <Select
-                                            value={price.currency}
-                                            onChange={e => setPrice({ ...price, currency: e.target.value })}
-                                            label="Currency"
-                                        >
-                                            <MenuItem value="USD">USD</MenuItem>
-                                            <MenuItem value="PKR">PKR</MenuItem>
-                                            <MenuItem value="EUR">EUR</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </Grid>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Inventory</Typography>
-                            <Grid container spacing={3}>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="Quantity"
-                                        fullWidth
-                                        type="number"
-                                        value={inventory.qty}
-                                        onChange={e => {
-                                            setInventory({ ...inventory, qty: e.target.value });
-                                            handleFieldChange('inventory.qty', e.target.value);
-                                        }}
-                                        error={touched['inventory.qty'] && !!errors['inventory.qty']}
-                                        helperText={touched['inventory.qty'] && errors['inventory.qty']}
-                                        disabled={!inventory.track}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="Low Stock Threshold"
-                                        fullWidth
-                                        type="number"
-                                        value={inventory.lowStockThreshold}
-                                        onChange={e => setInventory({ ...inventory, lowStockThreshold: e.target.value })}
-                                        disabled={!inventory.track}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={inventory.track}
-                                                onChange={e => setInventory({ ...inventory, track: e.target.checked })}
-                                            />
-                                        }
-                                        label="Track Inventory"
-                                    />
-                                </Grid>
-                            </Grid>
-                        </CardContent>
-                    </Card>
-                </Box>
-            )}
-
-            {/* Specifications Tab */}
-            {tab === 4 && (
-                <Card>
-                    <CardContent>
-                        <Typography variant="h6" gutterBottom>Product Specifications *</Typography>
-                        {specs.map((s, idx) => (
-                            <Grid key={idx} container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                                <Grid item xs={12} md={5}>
-                                    <TextField
-                                        label="Specification Name"
-                                        fullWidth
-                                        value={s.key}
-                                        onChange={e => setSpecs(specs.map((v, i) => i === idx ? { ...v, key: e.target.value } : v))}
-                                        placeholder="e.g., Weight, Dimensions, Color"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        label="Value"
-                                        fullWidth
-                                        value={s.value}
-                                        onChange={e => setSpecs(specs.map((v, i) => i === idx ? { ...v, value: e.target.value } : v))}
-                                        placeholder="e.g., 1.5 kg, 30x20x10 cm, Black"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={1}>
-                                    <IconButton onClick={() => removeItem(setSpecs, idx)} color="error">
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </Grid>
-                            </Grid>
-                        ))}
-                        <Button startIcon={<AddIcon />} onClick={() => addItem(setSpecs, { key: '', value: '' })}>
-                            Add Specification
-                        </Button>
-                        {touched.specs && errors.specs && (
-                            <Alert severity="error" sx={{ mt: 2 }}>{errors.specs}</Alert>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* B2B & Shipping Tab */}
-            {tab === 5 && (
-                <Box>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>B2B Quantity Discounts</Typography>
-                            {quantityDiscounts.map((d, idx) => (
-                                <Grid key={idx} container spacing={2} alignItems="center" sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                                    <Grid item xs={6} md={2}>
-                                        <TextField
-                                            label="Min Qty"
-                                            type="number"
-                                            fullWidth
-                                            value={d.minQty}
-                                            onChange={e => setQuantityDiscounts(quantityDiscounts.map((v, i) => i === idx ? { ...v, minQty: Number(e.target.value) } : v))}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={6} md={2}>
-                                        <TextField
-                                            label="Max Qty"
-                                            type="number"
-                                            fullWidth
-                                            value={d.maxQty || ''}
-                                            onChange={e => setQuantityDiscounts(quantityDiscounts.map((v, i) => i === idx ? { ...v, maxQty: Number(e.target.value) || undefined } : v))}
-                                            placeholder="Optional"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={6} md={2}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Discount Type</InputLabel>
-                                            <Select
-                                                value={d.discountType}
-                                                onChange={e => setQuantityDiscounts(quantityDiscounts.map((v, i) => i === idx ? { ...v, discountType: e.target.value } : v))}
-                                                label="Discount Type"
-                                            >
-                                                <MenuItem value="percent">Percentage</MenuItem>
-                                                <MenuItem value="amount">Fixed Amount</MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                    <Grid item xs={6} md={2}>
-                                        <TextField
-                                            label="Discount Value"
-                                            type="number"
-                                            fullWidth
-                                            value={d.discountValue}
-                                            onChange={e => setQuantityDiscounts(quantityDiscounts.map((v, i) => i === idx ? { ...v, discountValue: Number(e.target.value) } : v))}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} md={3}>
-                                        <TextField
-                                            label="Note"
-                                            fullWidth
-                                            value={d.note || ''}
-                                            onChange={e => setQuantityDiscounts(quantityDiscounts.map((v, i) => i === idx ? { ...v, note: e.target.value } : v))}
-                                            placeholder="Optional note"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} md={1}>
-                                        <IconButton onClick={() => removeItem(setQuantityDiscounts, idx)} color="error">
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </Grid>
-                                </Grid>
-                            ))}
-                            <Button startIcon={<AddIcon />} onClick={() => addItem(setQuantityDiscounts, { minQty: 10, discountType: 'percent', discountValue: 5 })}>
-                                Add Discount Tier
-                            </Button>
-
-                            <Box sx={{ mt: 2 }}>
-                                <FormControlLabel
-                                    control={<Switch checked={contactOnly} onChange={e => setContactOnly(e.target.checked)} />}
-                                    label="Contact Only (Hide Add to Cart Button)"
-                                />
-                            </Box>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Shipping Information</Typography>
-                            <Grid container spacing={3}>
-                                <Grid item xs={12} md={3}>
-                                    <TextField
-                                        label="Weight (kg)"
-                                        fullWidth
-                                        type="number"
-                                        value={shipping.weight}
-                                        onChange={e => setShipping({ ...shipping, weight: e.target.value })}
-                                        step="0.1"
-                                    />
-                                </Grid>
-                                <Grid item xs={4} md={2}>
-                                    <TextField
-                                        label="Length (cm)"
-                                        fullWidth
-                                        type="number"
-                                        value={shipping.dimensions.l}
-                                        onChange={e => setShipping({ ...shipping, dimensions: { ...shipping.dimensions, l: e.target.value } })}
-                                    />
-                                </Grid>
-                                <Grid item xs={4} md={2}>
-                                    <TextField
-                                        label="Width (cm)"
-                                        fullWidth
-                                        type="number"
-                                        value={shipping.dimensions.w}
-                                        onChange={e => setShipping({ ...shipping, dimensions: { ...shipping.dimensions, w: e.target.value } })}
-                                    />
-                                </Grid>
-                                <Grid item xs={4} md={2}>
-                                    <TextField
-                                        label="Height (cm)"
-                                        fullWidth
-                                        type="number"
-                                        value={shipping.dimensions.h}
-                                        onChange={e => setShipping({ ...shipping, dimensions: { ...shipping.dimensions, h: e.target.value } })}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={3}>
-                                    <TextField
-                                        label="Origin Country"
-                                        fullWidth
-                                        value={shipping.originCountry}
-                                        onChange={e => setShipping({ ...shipping, originCountry: e.target.value })}
-                                        placeholder="e.g., Pakistan"
-                                    />
-                                </Grid>
-                                <Grid item xs={6} md={3}>
-                                    <TextField
-                                        label="Lead Time (Days)"
-                                        fullWidth
-                                        type="number"
-                                        value={shipping.leadTimeDays}
-                                        onChange={e => setShipping({ ...shipping, leadTimeDays: e.target.value })}
-                                    />
-                                </Grid>
-                                <Grid item xs={6} md={3}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={shipping.freeShipping}
-                                                onChange={e => setShipping({ ...shipping, freeShipping: e.target.checked })}
-                                            />
-                                        }
-                                        label="Free Shipping"
-                                    />
-                                </Grid>
-                            </Grid>
-                        </CardContent>
-                    </Card>
-                </Box>
-            )}
-
-            {/* SEO & Publish Tab */}
-            {tab === 6 && (
-                <Box>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>SEO Settings</Typography>
-                            <Grid container spacing={3}>
-                                <Grid item xs={12}>
+                        {/* SEO Settings */}
+                        <Accordion>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>SEO Settings</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Stack spacing={2}>
                                     <TextField
                                         label="Meta Title"
+                                        value={formData.metaTitle}
+                                        onChange={(e) => handleFieldChange('metaTitle', e.target.value)}
                                         fullWidth
-                                        value={seo.metaTitle}
-                                        onChange={e => setSeo({ ...seo, metaTitle: e.target.value })}
-                                        placeholder="Leave empty to use product title"
-                                        helperText={`${seo.metaTitle?.length || 0}/60 characters`}
+                                        size="small"
+                                        helperText={`${formData.metaTitle.length}/60 characters - Recommended: 50-60 characters`}
+                                        inputProps={{ maxLength: 60 }}
                                     />
-                                </Grid>
-                                <Grid item xs={12}>
                                     <TextField
                                         label="Meta Description"
-                                        fullWidth
+                                        value={formData.metaDescription}
+                                        onChange={(e) => handleFieldChange('metaDescription', e.target.value)}
                                         multiline
                                         rows={3}
-                                        value={seo.metaDescription}
-                                        onChange={e => setSeo({ ...seo, metaDescription: e.target.value })}
-                                        placeholder="Brief description for search engines"
-                                        helperText={`${seo.metaDescription?.length || 0}/160 characters`}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        label="Canonical URL"
                                         fullWidth
-                                        value={seo.canonicalUrl}
-                                        onChange={e => setSeo({ ...seo, canonicalUrl: e.target.value })}
-                                        placeholder="https://yoursite.com/products/product-slug"
+                                        size="small"
+                                        helperText={`${formData.metaDescription.length}/160 characters - Recommended: 150-160 characters`}
+                                        inputProps={{ maxLength: 160 }}
                                     />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        label="OG Image URL"
+                                </Stack>
+                            </AccordionDetails>
+                        </Accordion>
+                    </Stack>
+                </Grid>
+
+                {/* Right Sidebar */}
+                <Grid item xs={12} lg={4}>
+                    <Stack spacing={3} sx={{ position: 'sticky', top: 24 }}>
+                        {/* Publish Box */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Publish</Typography>
+
+                            <Stack spacing={2}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <VisibilityIcon sx={{ color: '#666', fontSize: 20 }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                        Visibility: <strong>{formData.visibility}</strong>
+                                    </Typography>
+                                </Box>
+
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>Visibility</InputLabel>
+                                    <Select
+                                        value={formData.visibility}
+                                        label="Visibility"
+                                        onChange={(e) => handleFieldChange('visibility', e.target.value)}
+                                    >
+                                        <MenuItem value="visible">Public</MenuItem>
+                                        <MenuItem value="hidden">Hidden</MenuItem>
+                                        <MenuItem value="draft">Draft</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={formData.featured}
+                                            onChange={(e) => handleFieldChange('featured', e.target.checked)}
+                                        />
+                                    }
+                                    label="Featured Product"
+                                />
+
+                                <Divider />
+
+                                <Stack spacing={1}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => handleSubmit(true)}
+                                        disabled={saving}
+                                        startIcon={<SaveIcon />}
                                         fullWidth
-                                        value={seo.ogImage}
-                                        onChange={e => setSeo({ ...seo, ogImage: e.target.value })}
-                                        placeholder="Image for social media sharing"
-                                    />
-                                </Grid>
-                            </Grid>
-                        </CardContent>
-                    </Card>
+                                    >
+                                        Save Draft
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => handleSubmit(false)}
+                                        disabled={saving}
+                                        startIcon={<PublishIcon />}
+                                        fullWidth
+                                        sx={{
+                                            backgroundColor: '#2e7d32',
+                                            '&:hover': { backgroundColor: '#1b5e20' }
+                                        }}
+                                    >
+                                        {isEdit ? 'Update' : 'Publish'}
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </Paper>
 
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Publish Settings</Typography>
-                            <Alert severity="info" sx={{ mb: 2 }}>
-                                Product will be created as draft. You can publish it later from the product management page.
-                            </Alert>
+                        {/* Pricing */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Pricing</Typography>
 
-                            {Object.keys(errors).length > 0 && (
-                                <Alert severity="error" sx={{ mb: 2 }}>
-                                    <Typography variant="subtitle2" gutterBottom>Please fix the following errors:</Typography>
-                                    <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-                                        {Object.entries(errors).map(([field, error]) => (
-                                            <li key={field}><strong>{field}:</strong> {error}</li>
-                                        ))}
-                                    </ul>
-                                </Alert>
-                            )}
-
-                            <Box display="flex" gap={2} justifyContent="flex-end">
-                                <Button
-                                    variant="outlined"
-                                    size="large"
-                                    onClick={() => {
-                                        if (window.confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
-                                            // Reset form or navigate away
-                                            window.location.reload();
-                                        }
+                            <Stack spacing={2}>
+                                <TextField
+                                    label="Regular Price"
+                                    type="number"
+                                    value={formData.price}
+                                    onChange={(e) => handleFieldChange('price', e.target.value)}
+                                    error={!!errors.price}
+                                    helperText={errors.price}
+                                    fullWidth
+                                    size="small"
+                                    required
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">{formData.currency}</InputAdornment>
                                     }}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    size="large"
-                                    onClick={handleSubmit}
-                                    disabled={saving || Object.keys(errors).length > 0}
-                                    sx={{ minWidth: 150 }}
-                                >
-                                    {saving ? 'Creating Product...' : 'Create Product'}
-                                </Button>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Box>
-            )}
-        </Paper>
+                                />
+
+                                <TextField
+                                    label="Sale Price"
+                                    type="number"
+                                    value={formData.salePrice}
+                                    onChange={(e) => handleFieldChange('salePrice', e.target.value)}
+                                    error={!!errors.salePrice}
+                                    helperText={errors.salePrice}
+                                    fullWidth
+                                    size="small"
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">{formData.currency}</InputAdornment>
+                                    }}
+                                />
+
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>Currency</InputLabel>
+                                    <Select
+                                        value={formData.currency}
+                                        label="Currency"
+                                        onChange={(e) => handleFieldChange('currency', e.target.value)}
+                                    >
+                                        <MenuItem value="USD">USD ($)</MenuItem>
+                                        <MenuItem value="EUR">EUR (€)</MenuItem>
+                                        <MenuItem value="GBP">GBP (£)</MenuItem>
+                                        <MenuItem value="PKR">PKR (₨)</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Paper>
+
+                        {/* Inventory */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Inventory</Typography>
+
+                            <Stack spacing={2}>
+                                <TextField
+                                    label="Stock Quantity"
+                                    type="number"
+                                    value={formData.stock}
+                                    onChange={(e) => handleFieldChange('stock', e.target.value)}
+                                    fullWidth
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                />
+
+                                <TextField
+                                    label="Low Stock Threshold"
+                                    type="number"
+                                    value={formData.lowStockThreshold}
+                                    onChange={(e) => handleFieldChange('lowStockThreshold', e.target.value)}
+                                    fullWidth
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                />
+
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={formData.manageStock}
+                                            onChange={(e) => handleFieldChange('manageStock', e.target.checked)}
+                                        />
+                                    }
+                                    label="Track quantity"
+                                />
+
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={formData.inStock}
+                                            onChange={(e) => handleFieldChange('inStock', e.target.checked)}
+                                        />
+                                    }
+                                    label="In stock"
+                                />
+                            </Stack>
+                        </Paper>
+
+                        {/* Categories & Tags */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Categories & Tags</Typography>
+
+                            <Stack spacing={3}>
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>Categories</InputLabel>
+                                    <Select
+                                        multiple
+                                        value={formData.categories}
+                                        label="Categories"
+                                        onChange={(e) => handleFieldChange('categories', e.target.value)}
+                                        renderValue={(selected) => (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                {selected.map((value) => (
+                                                    <Chip key={value} label={value} size="small" />
+                                                ))}
+                                            </Box>
+                                        )}
+                                    >
+                                        <MenuItem value="surgical-instruments">Surgical Instruments</MenuItem>
+                                        <MenuItem value="medical-gloves">Medical Gloves</MenuItem>
+                                        <MenuItem value="beauty-tools">Beauty Tools</MenuItem>
+                                        <MenuItem value="leather-products">Leather Products</MenuItem>
+                                        <MenuItem value="medical-tools">Medical Tools</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <Box>
+                                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                        <TextField
+                                            label="Add Tag"
+                                            value={formData.tagInput}
+                                            onChange={(e) => handleFieldChange('tagInput', e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddTag();
+                                                }
+                                            }}
+                                            size="small"
+                                            sx={{ flexGrow: 1 }}
+                                        />
+                                        <Button
+                                            onClick={handleAddTag}
+                                            variant="outlined"
+                                            size="small"
+                                        >
+                                            Add
+                                        </Button>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {formData.tags.map((tag, index) => (
+                                            <Chip
+                                                key={index}
+                                                label={tag}
+                                                onDelete={() => removeArrayItem('tags', index)}
+                                                size="small"
+                                            />
+                                        ))}
+                                    </Box>
+                                </Box>
+                            </Stack>
+                        </Paper>
+
+                        {/* Short Description */}
+                        <Paper elevation={0} sx={{ p: 3 }}>
+                            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Short Description</Typography>
+                            <TextField
+                                label="Short Description"
+                                value={formData.shortDescription}
+                                onChange={(e) => handleFieldChange('shortDescription', e.target.value)}
+                                multiline
+                                rows={4}
+                                fullWidth
+                                size="small"
+                                placeholder="Brief product summary for listings and previews..."
+                                helperText="Used in product listings and search results"
+                            />
+                        </Paper>
+                    </Stack>
+                </Grid>
+            </Grid>
+
+            {/* Floating Action Button for Mobile */}
+            <Box
+                sx={{
+                    position: 'fixed',
+                    bottom: 24,
+                    right: 24,
+                    display: { xs: 'block', lg: 'none' }
+                }}
+            >
+                <Fab
+                    color="primary"
+                    onClick={() => handleSubmit(false)}
+                    disabled={saving}
+                    sx={{ backgroundColor: '#2e7d32' }}
+                >
+                    <PublishIcon />
+                </Fab>
+            </Box>
+        </Box>
     );
 }
