@@ -264,13 +264,13 @@
 
 // app/api/media/route.js
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Media from '@/lib/models/Media';
+import dbConnect from '@/lib/dbConnect';
 
+import Media from '@/app/models/Media';
 // GET all media with filtering, searching, and pagination
 export async function GET(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { searchParams } = new URL(request.url);
     
@@ -359,7 +359,7 @@ export async function GET(request) {
 // POST - Create media entry (for URL embeds or direct media records)
 export async function POST(request) {
   try {
-    await connectDB();
+     await dbConnect();
 
     const data = await request.json();
 

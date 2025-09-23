@@ -234,13 +234,13 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import connectDB from '@/lib/db/mongodb';
-import Media from '@/lib/models/Media';
+import dbConnect from '@/lib/dbConnect';
 
+import Media from '@/app/models/Media';
 // POST - Handle file uploads
 export async function POST(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const formData = await request.formData();
     const files = formData.getAll('files');
