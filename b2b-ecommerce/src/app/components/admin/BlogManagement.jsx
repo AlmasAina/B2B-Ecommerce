@@ -1493,7 +1493,9 @@
 
 // BlogManagement.js - Updated with API calls
 import React, { useState, useEffect } from 'react';
-// import { blogAPI } from '../lib/api/blogApi'; // Adjust path as needed
+// Fix the import - use blogAPI instead of BlogApi
+
+import { blogAPI } from '@/app/api/blog/route';
 import {
     Box,
     Grid,
@@ -1574,7 +1576,7 @@ const BlogManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState('all'); // Added missing state
+    const [dateFilter, setDateFilter] = useState('all');
 
     // Post editor states
     const [editingPost, setEditingPost] = useState(null);
@@ -1600,121 +1602,6 @@ const BlogManagement = () => {
         permalink: ''
     });
 
-    // Mock API functions (replace with real API calls)
-    const mockBlogAPI = {
-        getPosts: async ({ limit }) => {
-            // Mock data
-            return {
-                success: true,
-                data: [
-                    {
-                        _id: '1',
-                        title: 'Welcome to WordPress',
-                        content: 'This is your first post. Edit or delete it.',
-                        status: 'published',
-                        author: 'admin',
-                        categories: ['Uncategorized'],
-                        tags: ['welcome'],
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    },
-                    {
-                        _id: '2',
-                        title: 'Sample Draft Post',
-                        content: 'This is a draft post.',
-                        status: 'draft',
-                        author: 'admin',
-                        categories: ['General'],
-                        tags: ['sample', 'draft'],
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    }
-                ]
-            };
-        },
-        getCategories: async () => {
-            return {
-                success: true,
-                data: [
-                    { _id: '1', name: 'Uncategorized', slug: 'uncategorized', description: '', count: 1 },
-                    { _id: '2', name: 'General', slug: 'general', description: '', count: 1 }
-                ]
-            };
-        },
-        getTags: async ({ limit }) => {
-            return {
-                success: true,
-                data: [
-                    { _id: '1', name: 'welcome', slug: 'welcome', count: 1 },
-                    { _id: '2', name: 'sample', slug: 'sample', count: 1 },
-                    { _id: '3', name: 'draft', slug: 'draft', count: 1 }
-                ]
-            };
-        },
-        getMedia: async ({ limit }) => {
-            return {
-                success: true,
-                data: [
-                    {
-                        _id: '1',
-                        filename: 'sample-image.jpg',
-                        url: '/images/sample-image.jpg',
-                        type: 'image',
-                        size: 102400,
-                        createdAt: new Date().toISOString()
-                    }
-                ]
-            };
-        },
-        uploadMedia: async (files) => {
-            // Mock upload
-            return {
-                success: true,
-                data: files.map((file, index) => ({
-                    _id: `upload_${Date.now()}_${index}`,
-                    filename: file.name,
-                    url: URL.createObjectURL(file),
-                    type: file.type.startsWith('image/') ? 'image' : 'video',
-                    size: file.size,
-                    createdAt: new Date().toISOString()
-                }))
-            };
-        },
-        createMediaFromUrl: async (embedData) => {
-            return {
-                success: true,
-                data: {
-                    _id: `embed_${Date.now()}`,
-                    ...embedData,
-                    type: 'embed',
-                    createdAt: new Date().toISOString()
-                }
-            };
-        },
-        createPost: async (data) => {
-            return {
-                success: true,
-                data: {
-                    _id: `post_${Date.now()}`,
-                    ...data,
-                    author: 'admin',
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                }
-            };
-        },
-        updatePost: async (id, data) => {
-            return {
-                success: true,
-                data: {
-                    _id: id,
-                    ...data,
-                    updatedAt: new Date().toISOString()
-                }
-            };
-        }
-    };
-
     // Initialize data
     useEffect(() => {
         fetchInitialData();
@@ -1725,18 +1612,21 @@ const BlogManagement = () => {
         setError(null);
 
         try {
-            // Fetch all data in parallel
+            // Fetch all data in parallel using the real API
             const [postsResult, categoriesResult, tagsResult, mediaResult] = await Promise.all([
-                mockBlogAPI.getPosts({ limit: 50 }),
-                mockBlogAPI.getCategories(),
-                mockBlogAPI.getTags({ limit: 100 }),
-                mockBlogAPI.getMedia({ limit: 50 })
+                blogAPI.getPosts({ limit: 50 }),
+                blogAPI.getCategories(),
+                blogAPI.getTags({ limit: 100 }),
+                blogAPI.getMedia({ limit: 50 })
             ]);
+
+            console.log('API Results:', { postsResult, categoriesResult, tagsResult, mediaResult });
 
             if (postsResult.success) {
                 setPosts(postsResult.data || []);
             } else {
                 console.error('Failed to fetch posts:', postsResult.error);
+                setError(postsResult.error || 'Failed to load posts');
             }
 
             if (categoriesResult.success) {
@@ -1759,13 +1649,29 @@ const BlogManagement = () => {
 
         } catch (error) {
             console.error('Error fetching initial data:', error);
-            setError('Failed to load data. Please check if your backend server is running.');
+            setError(`Failed to load data. Please check if your backend server is running. Error: ${error.message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Added missing handler functions
+    // Test API connection
+    const testAPIConnection = async () => {
+        try {
+            const response = await fetch('/api/test');
+            const data = await response.json();
+            console.log('API Test:', data);
+            return response.ok;
+        } catch (error) {
+            console.error('API Connection Test Failed:', error);
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        testAPIConnection();
+    }, []);
+
     const handleNewPost = () => {
         setEditingPost(null);
         setPostData({
@@ -1796,10 +1702,14 @@ const BlogManagement = () => {
         setEditingPost(post);
         setPostData({
             ...post,
-            categories: post.categories || [],
-            tags: post.tags || [],
+            categories: post.categories ? post.categories.map(cat => 
+                typeof cat === 'string' ? cat : cat.name
+            ) : [],
+            tags: post.tags ? post.tags.map(tag => 
+                typeof tag === 'string' ? tag : tag.name
+            ) : [],
             mediaItems: post.mediaItems || [],
-            permalink: post.permalink || ''
+            permalink: post.permalink || post.slug || ''
         });
         setCurrentView('add-post');
     };
@@ -1822,22 +1732,37 @@ const BlogManagement = () => {
         });
     };
 
-    const handleBulkAction = () => {
+    const handleBulkAction = async () => {
         if (!bulkAction || selectedPosts.length === 0) return;
         
-        console.log(`Bulk action: ${bulkAction} on posts:`, selectedPosts);
-        // Implement bulk actions here
-        
-        // Reset selections
-        setSelectedPosts([]);
-        setBulkAction('');
+        setLoading(true);
+        try {
+            for (const postId of selectedPosts) {
+                if (bulkAction === 'delete') {
+                    await blogAPI.deletePost(postId);
+                } else if (bulkAction === 'publish' || bulkAction === 'draft') {
+                    await blogAPI.updatePost(postId, { status: bulkAction === 'publish' ? 'published' : 'draft' });
+                }
+            }
+            
+            // Refresh posts
+            await fetchInitialData();
+            
+            // Reset selections
+            setSelectedPosts([]);
+            setBulkAction('');
+        } catch (error) {
+            setError('Bulk action failed: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleMediaDialog = () => {
         setMediaDialogOpen(true);
     };
 
-    // Real file upload function
+    // Real file upload function using the API
     const handleFileUpload = async (event) => {
         const files = Array.from(event.target.files);
         if (!files || files.length === 0) return;
@@ -1850,7 +1775,7 @@ const BlogManagement = () => {
                 setUploadProgress(prev => Math.min(prev + 10, 90));
             }, 200);
 
-            const result = await mockBlogAPI.uploadMedia(files);
+            const result = await blogAPI.uploadMedia(files);
 
             clearInterval(progressInterval);
             setUploadProgress(100);
@@ -1883,6 +1808,7 @@ const BlogManagement = () => {
                 url: mediaUrl,
                 filename: `embed_${Date.now()}`,
                 originalName: 'Embedded Content',
+                type: 'embed',
                 embedData: {
                     platform: detectPlatform(mediaUrl),
                     embedUrl: mediaUrl,
@@ -1891,7 +1817,7 @@ const BlogManagement = () => {
                 }
             };
 
-            const result = await mockBlogAPI.createMediaFromUrl(embedData);
+            const result = await blogAPI.createMediaFromUrl(embedData);
 
             if (result.success) {
                 setMediaItems(prev => [result.data, ...prev]);
@@ -1956,7 +1882,7 @@ const BlogManagement = () => {
         }));
     };
 
-    // Save post
+    // Save post using real API
     const handleSavePost = async () => {
         setLoading(true);
         setError(null);
@@ -1966,7 +1892,7 @@ const BlogManagement = () => {
 
             if (editingPost) {
                 // Update existing post
-                result = await mockBlogAPI.updatePost(editingPost._id, postData);
+                result = await blogAPI.updatePost(editingPost._id, postData);
                 
                 if (result.success) {
                     setPosts(posts.map(post =>
@@ -1975,7 +1901,7 @@ const BlogManagement = () => {
                 }
             } else {
                 // Create new post
-                result = await mockBlogAPI.createPost(postData);
+                result = await blogAPI.createPost(postData);
                 
                 if (result.success) {
                     setPosts([result.data, ...posts]);
@@ -2008,6 +1934,7 @@ const BlogManagement = () => {
 
     // Utility functions
     const formatDate = (dateString) => {
+        if (!dateString) return 'No date';
         const date = new Date(dateString);
         const now = new Date();
         const diffTime = Math.abs(now - date);
@@ -2030,6 +1957,23 @@ const BlogManagement = () => {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
+
+    // Get status counts for tabs
+    const getStatusCounts = () => {
+        const counts = posts.reduce((acc, post) => {
+            acc[post.status] = (acc[post.status] || 0) + 1;
+            return acc;
+        }, {});
+        
+        return {
+            all: posts.length,
+            published: counts.published || 0,
+            draft: counts.draft || 0,
+            trash: counts.trash || 0
+        };
+    };
+
+    const statusCounts = getStatusCounts();
 
     // Media Dialog Component
     const MediaDialog = () => (
@@ -2102,41 +2046,47 @@ const BlogManagement = () => {
                 {/* Media Library Tab */}
                 {mediaTab === 1 && (
                     <Box sx={{ mt: 2 }}>
-                        <ImageList cols={3} rowHeight={164}>
-                            {mediaItems.map((item) => (
-                                <ImageListItem
-                                    key={item._id}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        border: selectedMedia?._id === item._id ? '3px solid #2271b1' : 'none'
-                                    }}
-                                    onClick={() => setSelectedMedia(item)}
-                                >
-                                    {item.type === 'image' ? (
-                                        <img
-                                            src={item.url}
-                                            alt={item.alt}
-                                            loading="lazy"
-                                            style={{ height: '100%', objectFit: 'cover' }}
+                        {mediaItems.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                                No media files found. Upload some files first.
+                            </Typography>
+                        ) : (
+                            <ImageList cols={3} rowHeight={164}>
+                                {mediaItems.map((item) => (
+                                    <ImageListItem
+                                        key={item._id}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            border: selectedMedia?._id === item._id ? '3px solid #2271b1' : 'none'
+                                        }}
+                                        onClick={() => setSelectedMedia(item)}
+                                    >
+                                        {item.type === 'image' ? (
+                                            <img
+                                                src={item.url}
+                                                alt={item.alt}
+                                                loading="lazy"
+                                                style={{ height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <Box sx={{
+                                                height: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                bgcolor: '#f0f0f0'
+                                            }}>
+                                                <VideoIconOutlined sx={{ fontSize: 48, color: '#666' }} />
+                                            </Box>
+                                        )}
+                                        <ImageListItemBar
+                                            title={item.filename}
+                                            subtitle={formatFileSize(item.size || 0)}
                                         />
-                                    ) : (
-                                        <Box sx={{
-                                            height: '100%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            bgcolor: '#f0f0f0'
-                                        }}>
-                                            <VideoIconOutlined sx={{ fontSize: 48, color: '#666' }} />
-                                        </Box>
-                                    )}
-                                    <ImageListItemBar
-                                        title={item.filename}
-                                        subtitle={formatFileSize(item.size || 0)}
-                                    />
-                                </ImageListItem>
-                            ))}
-                        </ImageList>
+                                    </ImageListItem>
+                                ))}
+                            </ImageList>
+                        )}
 
                         {selectedMedia && (
                             <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
@@ -2241,9 +2191,10 @@ const BlogManagement = () => {
             {/* Filters */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Tabs value={statusFilter} onChange={(_, value) => setStatusFilter(value)}>
-                    <Tab label="All (3)" value="all" />
-                    <Tab label="Published (2)" value="published" />
-                    <Tab label="Draft (1)" value="draft" />
+                    <Tab label={`All (${statusCounts.all})`} value="all" />
+                    <Tab label={`Published (${statusCounts.published})`} value="published" />
+                    <Tab label={`Draft (${statusCounts.draft})`} value="draft" />
+                    {statusCounts.trash > 0 && <Tab label={`Trash (${statusCounts.trash})`} value="trash" />}
                 </Tabs>
 
                 <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
@@ -2304,9 +2255,9 @@ const BlogManagement = () => {
                     size="small"
                     variant="outlined"
                     onClick={handleBulkAction}
-                    disabled={!bulkAction || selectedPosts.length === 0}
+                    disabled={!bulkAction || selectedPosts.length === 0 || loading}
                 >
-                    Apply
+                    {loading ? <CircularProgress size={16} /> : 'Apply'}
                 </Button>
                 {selectedPosts.length > 0 && (
                     <Typography variant="body2" color="text.secondary">
@@ -2387,7 +2338,20 @@ const BlogManagement = () => {
                                                     Quick Edit
                                                 </Link>
                                                 <Typography variant="body2" color="text.secondary">|</Typography>
-                                                <Link component="button" variant="body2" color="error" sx={{ textDecoration: 'none' }}>
+                                                <Link 
+                                                    component="button" 
+                                                    variant="body2" 
+                                                    color="error" 
+                                                    sx={{ textDecoration: 'none' }}
+                                                    onClick={async () => {
+                                                        try {
+                                                            await blogAPI.deletePost(post._id);
+                                                            await fetchInitialData();
+                                                        } catch (error) {
+                                                            setError('Failed to delete post');
+                                                        }
+                                                    }}
+                                                >
                                                     Trash
                                                 </Link>
                                                 <Typography variant="body2" color="text.secondary">|</Typography>
@@ -2398,19 +2362,28 @@ const BlogManagement = () => {
                                         </Box>
                                     </TableCell>
                                     <TableCell>
-                                        <Typography variant="body2">{post.author}</Typography>
+                                        <Typography variant="body2">{post.author || 'Unknown'}</Typography>
                                     </TableCell>
                                     <TableCell>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            {post.categories.map(cat => (
-                                                <Chip key={cat} label={cat} size="small" variant="outlined" />
+                                            {(post.categories || []).map((cat, index) => (
+                                                <Chip 
+                                                    key={index} 
+                                                    label={typeof cat === 'string' ? cat : cat.name} 
+                                                    size="small" 
+                                                    variant="outlined" 
+                                                />
                                             ))}
                                         </Box>
                                     </TableCell>
                                     <TableCell>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            {post.tags.map(tag => (
-                                                <Chip key={tag} label={tag} size="small" />
+                                            {(post.tags || []).map((tag, index) => (
+                                                <Chip 
+                                                    key={index} 
+                                                    label={typeof tag === 'string' ? tag : tag.name} 
+                                                    size="small" 
+                                                />
                                             ))}
                                         </Box>
                                     </TableCell>
@@ -2419,10 +2392,10 @@ const BlogManagement = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Typography variant="body2">
-                                            {post.status === 'published' ? 'Published' : 'Draft'}
+                                            {post.status === 'published' ? 'Published' : post.status}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary">
-                                            {formatDate(post.updatedAt)}
+                                            {formatDate(post.updatedAt || post.createdAt)}
                                         </Typography>
                                     </TableCell>
                                 </TableRow>
@@ -2471,7 +2444,7 @@ const BlogManagement = () => {
                         {postData.title && (
                             <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderRadius: 1 }}>
                                 <Typography variant="body2" gutterBottom>
-                                    <strong>Permalink:</strong> http://testsite.kinsta.com/
+                                    <strong>Permalink:</strong> http://localhost:3000/
                                     <TextField
                                         size="small"
                                         value={postData.permalink || postData.title.toLowerCase().replace(/\s+/g, '-')}
@@ -2550,7 +2523,7 @@ const BlogManagement = () => {
                                     fullWidth
                                     multiline
                                     rows={12}
-                                    placeholder="This is a blog post about the WordPress admin area..."
+                                    placeholder="Start writing your post..."
                                     value={postData.content}
                                     onChange={(e) => setPostData(prev => ({ ...prev, content: e.target.value }))}
                                     variant="outlined"
@@ -2591,7 +2564,7 @@ const BlogManagement = () => {
                                         Word count: {postData.content.split(' ').filter(word => word.length > 0).length}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        Draft saved at 3:46:47 am.
+                                        Last saved: {new Date().toLocaleTimeString()}
                                     </Typography>
                                 </Box>
                             </Box>
@@ -2620,21 +2593,30 @@ const BlogManagement = () => {
 
                                     <Box>
                                         <Typography variant="body2" gutterBottom>
-                                            <strong>Status:</strong> {postData.status}
+                                            <strong>Status:</strong> 
+                                            <FormControl size="small" sx={{ ml: 1, minWidth: 80 }}>
+                                                <Select
+                                                    value={postData.status}
+                                                    onChange={(e) => setPostData(prev => ({ ...prev, status: e.target.value }))}
+                                                >
+                                                    <MenuItem value="draft">Draft</MenuItem>
+                                                    <MenuItem value="published">Published</MenuItem>
+                                                    <MenuItem value="scheduled">Scheduled</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="body2" gutterBottom>
+                                            <strong>Visibility:</strong> {postData.visibility}
                                             <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link>
                                         </Typography>
                                     </Box>
 
                                     <Box>
                                         <Typography variant="body2" gutterBottom>
-                                            <strong>Visibility:</strong> Public
-                                            <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link>
-                                        </Typography>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography variant="body2" gutterBottom>
-                                            <strong>Publish immediately</strong>
+                                            <strong>Publish:</strong> {postData.status === 'published' ? 'Immediately' : 'When ready'}
                                             <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link>
                                         </Typography>
                                     </Box>
@@ -2647,30 +2629,11 @@ const BlogManagement = () => {
                                         variant="contained"
                                         size="small"
                                         onClick={handleSavePost}
-                                        disabled={loading}
+                                        disabled={loading || !postData.title.trim()}
                                         sx={{ backgroundColor: '#2271b1' }}
                                     >
-                                        {loading ? <CircularProgress size={20} /> : 'Publish'}
+                                        {loading ? <CircularProgress size={20} /> : (editingPost ? 'Update' : 'Publish')}
                                     </Button>
-                                </Stack>
-                            </Box>
-                        </Card>
-
-                        {/* Format */}
-                        <Card>
-                            <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                                <Typography variant="h6">Format</Typography>
-                            </Box>
-                            <Box sx={{ p: 2 }}>
-                                <Stack spacing={1}>
-                                    <FormControlLabel control={<Checkbox defaultChecked />} label="Standard" />
-                                    <FormControlLabel control={<Checkbox />} label="Aside" />
-                                    <FormControlLabel control={<Checkbox />} label="Image" />
-                                    <FormControlLabel control={<Checkbox />} label="Video" />
-                                    <FormControlLabel control={<Checkbox />} label="Quote" />
-                                    <FormControlLabel control={<Checkbox />} label="Link" />
-                                    <FormControlLabel control={<Checkbox />} label="Gallery" />
-                                    <FormControlLabel control={<Checkbox />} label="Audio" />
                                 </Stack>
                             </Box>
                         </Card>
@@ -2682,30 +2645,36 @@ const BlogManagement = () => {
                             </Box>
                             <Box sx={{ p: 2 }}>
                                 <Stack spacing={1}>
-                                    {categories.map(category => (
-                                        <FormControlLabel
-                                            key={category._id}
-                                            control={
-                                                <Checkbox
-                                                    checked={postData.categories.includes(category.name)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setPostData(prev => ({
-                                                                ...prev,
-                                                                categories: [...prev.categories, category.name]
-                                                            }));
-                                                        } else {
-                                                            setPostData(prev => ({
-                                                                ...prev,
-                                                                categories: prev.categories.filter(cat => cat !== category.name)
-                                                            }));
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={category.name}
-                                        />
-                                    ))}
+                                    {categories.length === 0 ? (
+                                        <Typography variant="body2" color="text.secondary">
+                                            No categories available
+                                        </Typography>
+                                    ) : (
+                                        categories.map(category => (
+                                            <FormControlLabel
+                                                key={category._id}
+                                                control={
+                                                    <Checkbox
+                                                        checked={postData.categories.includes(category.name)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setPostData(prev => ({
+                                                                    ...prev,
+                                                                    categories: [...prev.categories, category.name]
+                                                                }));
+                                                            } else {
+                                                                setPostData(prev => ({
+                                                                    ...prev,
+                                                                    categories: prev.categories.filter(cat => cat !== category.name)
+                                                                }));
+                                                            }
+                                                        }}
+                                                    />
+                                                }
+                                                label={category.name}
+                                            />
+                                        ))
+                                    )}
                                 </Stack>
                                 <Box sx={{ mt: 2 }}>
                                     <Link component="button" variant="body2">+ Add New Category</Link>
@@ -2757,216 +2726,6 @@ const BlogManagement = () => {
         </Box>
     );
 
-    const CategoriesView = () => (
-        <Box>
-            <Typography variant="h4" component="h1" gutterBottom>
-                Categories
-            </Typography>
-
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                    <Card>
-                        <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                            <Typography variant="h6">Add New Category</Typography>
-                        </Box>
-                        <Box sx={{ p: 2 }}>
-                            <Stack spacing={2}>
-                                <TextField
-                                    fullWidth
-                                    label="Name"
-                                    placeholder="Category name"
-                                    size="small"
-                                />
-                                <TextField
-                                    fullWidth
-                                    label="Slug"
-                                    placeholder="category-slug"
-                                    size="small"
-                                />
-                                <TextField
-                                    fullWidth
-                                    label="Parent Category"
-                                    select
-                                    size="small"
-                                    defaultValue="none"
-                                >
-                                    <MenuItem value="none">None</MenuItem>
-                                    {categories.map(cat => (
-                                        <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
-                                    ))}
-                                </TextField>
-                                <TextField
-                                    fullWidth
-                                    label="Description"
-                                    multiline
-                                    rows={3}
-                                    size="small"
-                                    placeholder="The description is not prominent by default; however, some themes may show it."
-                                />
-                                <Button variant="contained" sx={{ backgroundColor: '#2271b1' }}>
-                                    Add New Category
-                                </Button>
-                            </Stack>
-                        </Box>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={8}>
-                    <TableContainer component={Paper} variant="outlined">
-                        <Table>
-                            <TableHead sx={{ backgroundColor: '#f0f0f1' }}>
-                                <TableRow>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox />
-                                    </TableCell>
-                                    <TableCell><strong>Name</strong></TableCell>
-                                    <TableCell><strong>Description</strong></TableCell>
-                                    <TableCell><strong>Slug</strong></TableCell>
-                                    <TableCell><strong>Count</strong></TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {categories.map((category) => (
-                                    <TableRow key={category._id} hover>
-                                        <TableCell padding="checkbox">
-                                            <Checkbox />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {category.name}
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                                    <Link component="button" variant="body2">Edit</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2">Quick Edit</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2" color="error">Delete</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2">View</Link>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {category.description || '—'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{category.slug}</Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{category.count}</Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Grid>
-            </Grid>
-        </Box>
-    );
-
-    const TagsView = () => (
-        <Box>
-            <Typography variant="h4" component="h1" gutterBottom>
-                Tags
-            </Typography>
-
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                    <Card>
-                        <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                            <Typography variant="h6">Add New Tag</Typography>
-                        </Box>
-                        <Box sx={{ p: 2 }}>
-                            <Stack spacing={2}>
-                                <TextField
-                                    fullWidth
-                                    label="Name"
-                                    placeholder="Tag name"
-                                    size="small"
-                                />
-                                <TextField
-                                    fullWidth
-                                    label="Slug"
-                                    placeholder="tag-slug"
-                                    size="small"
-                                />
-                                <TextField
-                                    fullWidth
-                                    label="Description"
-                                    multiline
-                                    rows={3}
-                                    size="small"
-                                    placeholder="The description is not prominent by default; however, some themes may show it."
-                                />
-                                <Button variant="contained" sx={{ backgroundColor: '#2271b1' }}>
-                                    Add New Tag
-                                </Button>
-                            </Stack>
-                        </Box>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={8}>
-                    <TableContainer component={Paper} variant="outlined">
-                        <Table>
-                            <TableHead sx={{ backgroundColor: '#f0f0f1' }}>
-                                <TableRow>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox />
-                                    </TableCell>
-                                    <TableCell><strong>Name</strong></TableCell>
-                                    <TableCell><strong>Description</strong></TableCell>
-                                    <TableCell><strong>Slug</strong></TableCell>
-                                    <TableCell><strong>Count</strong></TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {tags.map((tag) => (
-                                    <TableRow key={tag._id} hover>
-                                        <TableCell padding="checkbox">
-                                            <Checkbox />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {tag.name}
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                                    <Link component="button" variant="body2">Edit</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2">Quick Edit</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2" color="error">Delete</Link>
-                                                    <Typography variant="body2" color="text.secondary">|</Typography>
-                                                    <Link component="button" variant="body2">View</Link>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" color="text.secondary">
-                                                —
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{tag.slug}</Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{tag.count}</Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Grid>
-            </Grid>
-        </Box>
-    );
-
     // Navigation menu
     const NavigationMenu = () => (
         <Box sx={{ mb: 3 }}>
@@ -3005,8 +2764,6 @@ const BlogManagement = () => {
             <NavigationMenu />
 
             {currentView === 'posts' && <PostsList />}
-            {currentView === 'categories' && <CategoriesView />}
-            {currentView === 'tags' && <TagsView />}
             {currentView === 'add-post' && <PostEditor />}
         </Box>
     );

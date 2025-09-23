@@ -2,13 +2,12 @@
 import { NextResponse } from 'next/server';
 import { unlink } from 'fs/promises';
 import path from 'path';
-import connectDB from '@/lib/db/mongodb';
-import Media from '@/lib/models/Media';
-
+import dbConnect from '@/lib/dbConnect';
+import Media from '@/app/models/Media';
 // GET specific media by ID
 export async function GET(request, { params }) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { id } = params;
 
@@ -43,7 +42,7 @@ export async function GET(request, { params }) {
 // PUT - Update specific media
 export async function PUT(request, { params }) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { id } = params;
     const data = await request.json();
@@ -95,8 +94,7 @@ export async function PUT(request, { params }) {
 // DELETE specific media
 export async function DELETE(request, { params }) {
   try {
-    await connectDB();
-
+    await dbConnect();
     const { id } = params;
     const { searchParams } = new URL(request.url);
     const permanent = searchParams.get('permanent') === 'true';
