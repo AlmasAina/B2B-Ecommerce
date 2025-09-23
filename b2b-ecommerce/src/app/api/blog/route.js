@@ -1,250 +1,132 @@
-// lib/api/blogApi.js
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
+// lib/blogAPI.js - API client for blog operations
 class BlogAPI {
-  // Posts
-  async getPosts(params = {}) {
+  constructor() {
+    this.baseURL = '/api';
+  }
+
+  async request(url, options = {}) {
     try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/api/posts?${queryString}`);
+      const response = await fetch(`${this.baseURL}${url}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-      
-      const data = await response.json();
-      return { success: true, data: data.posts || data, error: null };
+
+      return data;
     } catch (error) {
-      console.error('Error fetching posts:', error);
-      return { success: false, data: null, error: error.message };
+      console.error('API request failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
+  }
+
+  // Posts
+  async getPosts(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/posts${queryString ? `?${queryString}` : ''}`);
   }
 
   async getPost(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/posts/${id}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.post || data, error: null };
-    } catch (error) {
-      console.error('Error fetching post:', error);
-      return { success: false, data: null, error: error.message };
-    }
+    return this.request(`/posts/${id}`);
   }
 
-  async createPost(postData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(postData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.post || data, error: null };
-    } catch (error) {
-      console.error('Error creating post:', error);
-      return { success: false, data: null, error: error.message };
-    }
+  async createPost(data) {
+    return this.request('/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
-  async updatePost(id, postData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/posts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(postData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.post || data, error: null };
-    } catch (error) {
-      console.error('Error updating post:', error);
-      return { success: false, data: null, error: error.message };
-    }
+  async updatePost(id, data) {
+    return this.request(`/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async deletePost(id, permanent = false) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/posts/${id}?permanent=${permanent}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data, error: null };
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      return { success: false, data: null, error: error.message };
-    }
+    return this.request(`/posts/${id}${permanent ? '?permanent=true' : ''}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Categories
+  async getCategories(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/categories${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createCategory(data) {
+    return this.request('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Tags
+  async getTags(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tags${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createTag(data) {
+    return this.request('/tags', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // Media
   async getMedia(params = {}) {
-    try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/api/media?${queryString}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.media || data, error: null };
-    } catch (error) {
-      console.error('Error fetching media:', error);
-      return { success: false, data: null, error: error.message };
-    }
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/media${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createMediaFromUrl(data) {
+    return this.request('/media', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async uploadMedia(files) {
     try {
       const formData = new FormData();
-      
-      // Handle multiple files
-      if (Array.isArray(files)) {
-        files.forEach(file => formData.append('files', file));
-      } else {
-        formData.append('files', files);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/media/upload`, {
-        method: 'POST',
-        body: formData
+      files.forEach((file, index) => {
+        formData.append('files', file);
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.files || data, error: null };
-    } catch (error) {
-      console.error('Error uploading media:', error);
-      return { success: false, data: null, error: error.message };
-    }
-  }
 
-  async createMediaFromUrl(embedData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/media`, {
+      const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(embedData)
+        body: formData,
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.media || data, error: null };
-    } catch (error) {
-      console.error('Error creating media from URL:', error);
-      return { success: false, data: null, error: error.message };
-    }
-  }
 
-  // Categories
-  async getCategories(params = {}) {
-    try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/api/categories?${queryString}`);
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(data.error || 'Upload failed');
       }
-      
-      const data = await response.json();
-      return { success: true, data: data.categories || data, error: null };
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      return { success: false, data: null, error: error.message };
-    }
-  }
 
-  async createCategory(categoryData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(categoryData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.category || data, error: null };
+      return data;
     } catch (error) {
-      console.error('Error creating category:', error);
-      return { success: false, data: null, error: error.message };
-    }
-  }
-
-  // Tags
-  async getTags(params = {}) {
-    try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/api/tags?${queryString}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.tags || data, error: null };
-    } catch (error) {
-      console.error('Error fetching tags:', error);
-      return { success: false, data: null, error: error.message };
-    }
-  }
-
-  async createTag(tagData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/tags`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tagData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data: data.tag || data, error: null };
-    } catch (error) {
-      console.error('Error creating tag:', error);
-      return { success: false, data: null, error: error.message };
+      console.error('Upload failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 }
 
-export const blogAPI = new BlogAPI();
+const blogAPI = new BlogAPI();
+export default blogAPI;

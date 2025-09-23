@@ -1,15 +1,14 @@
-
 // app/api/posts/route.js
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Post from '@/lib/models/Post';
-import Category from '@/lib/models/Category';
-import Tag from '@/lib/models/Tag';
+import dbConnect from '@/lib/dbConnect';
+import Post from '@/app/models/Post';
+import Category from '@/app/models/Category';
+import Tag from '@/app/models/Tag';
 
 // GET all posts
 export async function GET(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
@@ -92,7 +91,7 @@ export async function GET(request) {
 // POST - Create new post
 export async function POST(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const data = await request.json();
 

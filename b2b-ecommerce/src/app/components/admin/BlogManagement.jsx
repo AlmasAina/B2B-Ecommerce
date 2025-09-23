@@ -1493,9 +1493,9 @@
 
 // BlogManagement.js - Updated with API calls
 import React, { useState, useEffect } from 'react';
-// Fix the import - use blogAPI instead of BlogApi
 
-import { blogAPI } from '@/app/api/blog/route';
+
+import blogAPI from '@/app/api/blog/route';
 import {
     Box,
     Grid,

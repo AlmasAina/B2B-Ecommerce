@@ -1,12 +1,11 @@
 // app/api/tags/route.js
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Tag from '@/lib/models/Tag';
-
+import dbConnect from '@/lib/dbConnect';
+import Tag from '@/app/models/Tag';
 // GET all tags
 export async function GET(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const popular = searchParams.get('popular') === 'true';
@@ -42,7 +41,7 @@ export async function GET(request) {
 // POST - Create new tag
 export async function POST(request) {
   try {
-    await connectDB();
+   await dbConnect();
 
     const data = await request.json();
 

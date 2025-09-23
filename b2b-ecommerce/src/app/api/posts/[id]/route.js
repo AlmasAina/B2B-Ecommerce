@@ -1,14 +1,13 @@
 // app/api/posts/[id]/route.js
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Post from '@/lib/models/Post';
-import Category from '@/lib/models/Category';
-import Tag from '@/lib/models/Tag';
-
+import dbConnect from '@/lib/dbConnect';
+import Post from '@/app/models/Post';
+import Category from '@/app/models/Category';
+import Tag from '@/app/models/Tag';
 // GET specific post by ID
 export async function GET(request, { params }) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const { id } = params;
 
@@ -59,7 +58,7 @@ export async function GET(request, { params }) {
 // PUT - Update specific post
 export async function PUT(request, { params }) {
   try {
-    await connectDB();
+     await dbConnect();
 
     const { id } = params;
     const data = await request.json();
@@ -159,8 +158,7 @@ export async function PUT(request, { params }) {
 // DELETE specific post
 export async function DELETE(request, { params }) {
   try {
-    await connectDB();
-
+    await dbConnect();
     const { id } = params;
     const { searchParams } = new URL(request.url);
     const permanent = searchParams.get('permanent') === 'true';
