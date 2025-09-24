@@ -89,6 +89,7 @@ export async function GET(request) {
 }
 
 // POST - Create new post
+// POST - Create new post
 export async function POST(request) {
   try {
     await dbConnect();
@@ -128,12 +129,42 @@ export async function POST(request) {
       }
     }
 
+    // 🖼️ Process media items
+    let mediaItems = [];
+    if (data.mediaItems && data.mediaItems.length > 0) {
+      for (let item of data.mediaItems) {
+        // If frontend sends path -> create/find Media doc
+        if (typeof item.media === 'string') {
+          const Media = (await import('@/app/models/Media')).default || (await import('@/app/models/Media'));
+          let mediaDoc = await Media.findOne({ url: item.media });
+          if (!mediaDoc) {
+            mediaDoc = new Media({
+              url: item.media,
+              alt: item.alt || '',
+              caption: item.caption || ''
+            });
+            await mediaDoc.save();
+          }
+          mediaItems.push({
+            media: mediaDoc._id,
+            role: item.role || 'attachment',
+            caption: item.caption || '',
+            alt: item.alt || ''
+          });
+        } else {
+          // If frontend already sends ObjectId
+          mediaItems.push(item);
+        }
+      }
+    }
+
     // Create post
     const postData = {
       ...data,
       categories: categoryIds,
       tags: tagIds,
-      author: 'Admin', // You can get this from auth context
+      mediaItems,
+      author: 'Admin', // TODO: get from auth context later
       slug: data.permalink || data.title.toLowerCase().replace(/\s+/g, '-'),
       publishDate: data.status === 'published' ? new Date() : null
     };
@@ -144,7 +175,8 @@ export async function POST(request) {
     // Populate the response
     const populatedPost = await Post.findById(post._id)
       .populate('categories', 'name slug')
-      .populate('tags', 'name slug');
+      .populate('tags', 'name slug')
+      .populate({ path: 'mediaItems.media', model: 'Media' });
 
     return NextResponse.json({
       success: true,

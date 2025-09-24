@@ -20,7 +20,7 @@ const postSchema = new mongoose.Schema({
 
     // Media attachments
     mediaItems: [{
-        media: { type: mongoose.Schema.Types.ObjectId, ref: 'Media', required: true },
+        media: { type: mongoose.Schema.Types.ObjectId, ref: 'Media'},
         role: { type: String, enum: ['featured', 'gallery', 'attachment', 'inline'], default: 'attachment' },
         order: { type: Number, default: 0 },
         caption: String,
