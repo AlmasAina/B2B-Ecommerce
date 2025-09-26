@@ -1492,10 +1492,11 @@
 
 
 // BlogManagement.js - Updated with API calls
-import React, { useState, useEffect } from 'react';
+"use client";
 
+import React, { useState, useEffect, useRef } from 'react';
+import blogAPI from '@/app/api/blog/route'; // keep your existing API wrapper
 
-import blogAPI from '@/app/api/blog/route';
 import {
     Box,
     Grid,
@@ -1534,6 +1535,7 @@ import {
     FormControlLabel,
     Divider
 } from '@mui/material';
+
 import {
     Add as AddIcon,
     Article as ArticleIcon,
@@ -1554,31 +1556,44 @@ import {
     PlayCircleOutline as VideoIconOutlined
 } from '@mui/icons-material';
 
+const useDebounce = (value, delay = 250) => {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const id = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(id);
+    }, [value, delay]);
+    return debounced;
+};
+
 const BlogManagement = () => {
+    // Views & data
     const [currentView, setCurrentView] = useState('posts');
     const [posts, setPosts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [tags, setTags] = useState([]);
     const [mediaItems, setMediaItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [selectedPosts, setSelectedPosts] = useState([]);
-    const [bulkAction, setBulkAction] = useState('');
     const [error, setError] = useState(null);
 
-    // Media dialog states
+    // Bulk/select
+    const [selectedPosts, setSelectedPosts] = useState([]);
+    const [bulkAction, setBulkAction] = useState('');
+
+    // Media dialog
     const [mediaDialogOpen, setMediaDialogOpen] = useState(false);
     const [mediaTab, setMediaTab] = useState(0);
     const [selectedMedia, setSelectedMedia] = useState(null);
     const [mediaUrl, setMediaUrl] = useState('');
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    // Filters and search
+    // Filters/search
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 250);
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('all');
 
-    // Post editor states
+    // Editor
     const [editingPost, setEditingPost] = useState(null);
     const [postData, setPostData] = useState({
         title: '',
@@ -1601,6 +1616,11 @@ const BlogManagement = () => {
         layoutSettings: 'left-right',
         permalink: ''
     });
+    const [editorTab, setEditorTab] = useState(0);
+
+    // View single post
+    const [selectedPost, setSelectedPost] = useState(null);
+    const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
     // Initialize data
     useEffect(() => {
@@ -1610,68 +1630,46 @@ const BlogManagement = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         setError(null);
-
         try {
-            // Fetch all data in parallel using the real API
             const [postsResult, categoriesResult, tagsResult, mediaResult] = await Promise.all([
-                blogAPI.getPosts({ limit: 50 }),
+                blogAPI.getPosts({ limit: 100 }),
                 blogAPI.getCategories(),
-                blogAPI.getTags({ limit: 100 }),
-                blogAPI.getMedia({ limit: 50 })
+                blogAPI.getTags({ limit: 500 }),
+                blogAPI.getMedia({ limit: 200 })
             ]);
 
-            console.log('API Results:', { postsResult, categoriesResult, tagsResult, mediaResult });
+            if (postsResult?.success) setPosts(postsResult.data || []);
+            else console.error('Posts error', postsResult?.error);
 
-            if (postsResult.success) {
-                setPosts(postsResult.data || []);
-            } else {
-                console.error('Failed to fetch posts:', postsResult.error);
-                setError(postsResult.error || 'Failed to load posts');
-            }
+            if (categoriesResult?.success) setCategories(categoriesResult.data || []);
+            else console.error('Categories error', categoriesResult?.error);
 
-            if (categoriesResult.success) {
-                setCategories(categoriesResult.data || []);
-            } else {
-                console.error('Failed to fetch categories:', categoriesResult.error);
-            }
+            if (tagsResult?.success) setTags(tagsResult.data || []);
+            else console.error('Tags error', tagsResult?.error);
 
-            if (tagsResult.success) {
-                setTags(tagsResult.data || []);
-            } else {
-                console.error('Failed to fetch tags:', tagsResult.error);
-            }
+            if (mediaResult?.success) setMediaItems(mediaResult.data || []);
+            else console.error('Media error', mediaResult?.error);
 
-            if (mediaResult.success) {
-                setMediaItems(mediaResult.data || []);
-            } else {
-                console.error('Failed to fetch media:', mediaResult.error);
-            }
-
-        } catch (error) {
-            console.error('Error fetching initial data:', error);
-            setError(`Failed to load data. Please check if your backend server is running. Error: ${error.message}`);
+        } catch (err) {
+            console.error('Error fetching initial data', err);
+            setError(`Failed to load data. ${err.message || ''}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Test API connection
-    const testAPIConnection = async () => {
-        try {
-            const response = await fetch('/api/test');
-            const data = await response.json();
-            console.log('API Test:', data);
-            return response.ok;
-        } catch (error) {
-            console.error('API Connection Test Failed:', error);
-            return false;
-        }
-    };
-
+    // Test API (keeps existing)
     useEffect(() => {
-        testAPIConnection();
+        (async () => {
+            try {
+                await fetch('/api/test');
+            } catch (e) {
+                console.warn('API test failed', e);
+            }
+        })();
     }, []);
 
+    // New / Edit post handlers
     const handleNewPost = () => {
         setEditingPost(null);
         setPostData({
@@ -1702,107 +1700,107 @@ const BlogManagement = () => {
         setEditingPost(post);
         setPostData({
             ...post,
-            categories: post.categories ? post.categories.map(cat => 
-                typeof cat === 'string' ? cat : cat.name
-            ) : [],
-            tags: post.tags ? post.tags.map(tag => 
-                typeof tag === 'string' ? tag : tag.name
-            ) : [],
+            categories: post.categories ? post.categories.map(cat => typeof cat === 'string' ? cat : cat.name) : [],
+            tags: post.tags ? post.tags.map(tag => typeof tag === 'string' ? tag : tag.name) : [],
             mediaItems: post.mediaItems || [],
             permalink: post.permalink || post.slug || ''
         });
         setCurrentView('add-post');
+        setEditorTab(0);
     };
 
+    // Select handlers
     const handleSelectAll = (event) => {
         if (event.target.checked) {
-            setSelectedPosts(filteredPosts.map(post => post._id));
+            setSelectedPosts(filteredPosts.map(p => p._id));
         } else {
             setSelectedPosts([]);
         }
     };
 
     const handleSelectPost = (postId) => {
-        setSelectedPosts(prev => {
-            if (prev.includes(postId)) {
-                return prev.filter(id => id !== postId);
-            } else {
-                return [...prev, postId];
-            }
-        });
+        setSelectedPosts(prev => prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]);
     };
 
     const handleBulkAction = async () => {
         if (!bulkAction || selectedPosts.length === 0) return;
-        
         setLoading(true);
         try {
-            for (const postId of selectedPosts) {
-                if (bulkAction === 'delete') {
-                    await blogAPI.deletePost(postId);
-                } else if (bulkAction === 'publish' || bulkAction === 'draft') {
-                    await blogAPI.updatePost(postId, { status: bulkAction === 'publish' ? 'published' : 'draft' });
+            for (const id of selectedPosts) {
+                if (bulkAction === 'delete') await blogAPI.deletePost(id);
+                else if (bulkAction === 'publish' || bulkAction === 'draft') {
+                    await blogAPI.updatePost(id, { status: bulkAction === 'publish' ? 'published' : 'draft' });
                 }
             }
-            
-            // Refresh posts
             await fetchInitialData();
-            
-            // Reset selections
             setSelectedPosts([]);
             setBulkAction('');
-        } catch (error) {
-            setError('Bulk action failed: ' + error.message);
+        } catch (err) {
+            console.error('Bulk failed', err);
+            setError('Bulk action failed');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleMediaDialog = () => {
-        setMediaDialogOpen(true);
-    };
+    // Media functions
+    const handleMediaDialog = () => setMediaDialogOpen(true);
 
-    // Real file upload function using the API
     const handleFileUpload = async (event) => {
-        const files = Array.from(event.target.files);
-        if (!files || files.length === 0) return;
-
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
         setUploadProgress(0);
-
         try {
-            // Show progress
-            const progressInterval = setInterval(() => {
-                setUploadProgress(prev => Math.min(prev + 10, 90));
-            }, 200);
-
+            const progressInterval = setInterval(() => setUploadProgress(prev => Math.min(prev + 10, 90)), 200);
             const result = await blogAPI.uploadMedia(files);
-
             clearInterval(progressInterval);
             setUploadProgress(100);
 
-            if (result.success) {
-                // Add new media items to state
+            if (result?.success) {
                 setMediaItems(prev => [...result.data, ...prev]);
-                
-                setTimeout(() => {
-                    setUploadProgress(0);
-                }, 1000);
+                setTimeout(() => setUploadProgress(0), 800);
             } else {
-                console.error('Upload failed:', result.error);
-                setError(result.error || 'Upload failed');
+                setError(result?.error || 'Upload failed');
                 setUploadProgress(0);
             }
-        } catch (error) {
-            console.error('Error uploading files:', error);
-            setError('Upload failed. Please check your connection.');
+        } catch (err) {
+            console.error('Upload error', err);
+            setError('Upload failed. Check connection.');
             setUploadProgress(0);
         }
     };
 
-    // Handle URL embed
+    const detectPlatform = (url) => {
+        if (!url) return 'direct';
+        if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+        if (url.includes('instagram.com')) return 'instagram';
+        if (url.includes('tiktok.com')) return 'tiktok';
+        if (url.includes('twitter.com') || url.includes('x.com')) return 'twitter';
+        return 'direct';
+    };
+
+    const extractYouTubeId = (url) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const generateEmbedHtml = (url) => {
+        const platform = detectPlatform(url);
+        switch (platform) {
+            case 'youtube':
+                const id = extractYouTubeId(url);
+                if (!id) return `<a href="${url}" target="_blank">${url}</a>`;
+                return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`;
+            case 'instagram':
+                return `<blockquote class="instagram-media" data-instgrm-permalink="${url}"></blockquote>`;
+            default:
+                return `<a href="${url}" target="_blank">${url}</a>`;
+        }
+    };
+
     const handleUrlEmbed = async () => {
         if (!mediaUrl) return;
-
         try {
             const embedData = {
                 url: mediaUrl,
@@ -1818,185 +1816,133 @@ const BlogManagement = () => {
             };
 
             const result = await blogAPI.createMediaFromUrl(embedData);
-
-            if (result.success) {
+            if (result?.success) {
                 setMediaItems(prev => [result.data, ...prev]);
                 insertMediaIntoContent(result.data);
                 setMediaDialogOpen(false);
                 setMediaUrl('');
             } else {
-                setError(result.error || 'Failed to create embed');
+                setError(result?.error || 'Failed to create embed');
             }
-        } catch (error) {
-            console.error('Error creating embed:', error);
+        } catch (err) {
+            console.error('Embed error', err);
             setError('Failed to create embed');
         }
     };
 
-    // Detect platform from URL
-    const detectPlatform = (url) => {
-        if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-        if (url.includes('instagram.com')) return 'instagram';
-        if (url.includes('tiktok.com')) return 'tiktok';
-        if (url.includes('twitter.com') || url.includes('x.com')) return 'twitter';
-        return 'direct';
-    };
-
-    // Generate embed HTML
-    const generateEmbedHtml = (url) => {
-        const platform = detectPlatform(url);
-        switch (platform) {
-            case 'youtube':
-                const videoId = extractYouTubeId(url);
-                return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
-            case 'instagram':
-                return `<blockquote class="instagram-media" data-instgrm-permalink="${url}"></blockquote>`;
-            default:
-                return `<a href="${url}" target="_blank">${url}</a>`;
-        }
-    };
-
-    const extractYouTubeId = (url) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
-
     const insertMediaIntoContent = (mediaItem) => {
         let insertText = '';
-
-        if (mediaItem.type === 'image') {
-            insertText = `<img src="${mediaItem.url}" alt="${mediaItem.alt || ''}" />`;
-        } else if (mediaItem.type === 'video') {
-            insertText = `<video controls><source src="${mediaItem.url}" type="video/mp4"></video>`;
-        } else if (mediaItem.embedData?.embedHtml) {
-            insertText = mediaItem.embedData.embedHtml;
-        } else {
-            insertText = `<a href="${mediaItem.url}" target="_blank">${mediaItem.url}</a>`;
-        }
+        if (!mediaItem) return;
+        if (mediaItem.type === 'image') insertText = `<img src="${mediaItem.url}" alt="${mediaItem.alt || ''}" />`;
+        else if (mediaItem.type === 'video') insertText = `<video controls><source src="${mediaItem.url}" type="video/mp4" /></video>`;
+        else if (mediaItem.embedData?.embedHtml) insertText = mediaItem.embedData.embedHtml;
+        else insertText = `<a href="${mediaItem.url}" target="_blank">${mediaItem.url}</a>`;
 
         setPostData(prev => ({
             ...prev,
-            content: prev.content + '\n\n' + insertText,
+            content: prev.content ? (prev.content + '\n\n' + insertText) : insertText,
             mediaItems: [...prev.mediaItems, mediaItem]
         }));
     };
 
-    // Save post using real API
+    // Save post (create or update)
     const handleSavePost = async () => {
         setLoading(true);
         setError(null);
-
         try {
             let result;
-
             if (editingPost) {
-                // Update existing post
                 result = await blogAPI.updatePost(editingPost._id, postData);
-                
-                if (result.success) {
-                    setPosts(posts.map(post =>
-                        post._id === editingPost._id ? result.data : post
-                    ));
+                if (result?.success) {
+                    setPosts(prev => prev.map(p => p._id === editingPost._id ? result.data : p));
                 }
             } else {
-                // Create new post
                 result = await blogAPI.createPost(postData);
-                
-                if (result.success) {
-                    setPosts([result.data, ...posts]);
-                }
+                if (result?.success) setPosts(prev => [result.data, ...prev]);
             }
 
-            if (result.success) {
-                setCurrentView('posts');
-            } else {
-                setError(result.error || 'Failed to save post');
-            }
-        } catch (error) {
-            console.error('Error saving post:', error);
-            setError('Failed to save post. Please check your connection.');
+            if (result?.success) setCurrentView('posts');
+            else setError(result?.error || 'Failed to save post');
+        } catch (err) {
+            console.error('Save post error', err);
+            setError('Failed to save post. Check connection.');
         } finally {
             setLoading(false);
         }
     };
-
-    // Filter posts
-    const filteredPosts = posts.filter(post => {
-        const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-        const matchesCategory = categoryFilter === 'all' || 
-            (post.categories && post.categories.some(cat => 
-                typeof cat === 'string' ? cat === categoryFilter : cat.name === categoryFilter
-            ));
-        return matchesSearch && matchesStatus && matchesCategory;
-    });
 
     // Utility functions
     const formatDate = (dateString) => {
         if (!dateString) return 'No date';
         const date = new Date(dateString);
         const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+        const diff = Math.abs(now - date);
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        if (days === 1) return 'Yesterday';
+        if (days < 7) return `${days} days ago`;
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
     const formatFileSize = (bytes) => {
-        if (bytes === 0) return '0 Bytes';
+        if (!bytes) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Get status counts for tabs
     const getStatusCounts = () => {
-        const counts = posts.reduce((acc, post) => {
-            acc[post.status] = (acc[post.status] || 0) + 1;
+        const counts = posts.reduce((acc, p) => {
+            acc[p.status] = (acc[p.status] || 0) + 1;
             return acc;
         }, {});
-        
-        return {
-            all: posts.length,
-            published: counts.published || 0,
-            draft: counts.draft || 0,
-            trash: counts.trash || 0
-        };
+        return { all: posts.length, published: counts.published || 0, draft: counts.draft || 0, trash: counts.trash || 0 };
     };
 
     const statusCounts = getStatusCounts();
 
-    // Media Dialog Component
+    // Filtering (uses debounced search to avoid typing needing clicks)
+    const filteredPosts = posts.filter(post => {
+        const searchLower = debouncedSearch.toLowerCase();
+        const matchesSearch = !searchLower || (post.title || '').toLowerCase().includes(searchLower);
+        const matchesStatus = statusFilter === 'all' || (post.status === statusFilter);
+        const matchesCategory = categoryFilter === 'all' || (post.categories || []).some(c => (typeof c === 'string' ? c : c.name) === categoryFilter);
+        // dateFilter is a simple example
+        let matchesDate = true;
+        if (dateFilter === 'today') {
+            const pDate = new Date(post.createdAt || post.publishDate || post.updatedAt);
+            const today = new Date();
+            matchesDate = pDate.toDateString() === today.toDateString();
+        }
+        return matchesSearch && matchesStatus && matchesCategory && matchesDate;
+    });
+
+    // View post handler (opens dialog)
+    const handleViewPost = (post) => {
+        setSelectedPost(post);
+        setViewDialogOpen(true);
+    };
+
+    // Media dialog component
     const MediaDialog = () => (
         <Dialog open={mediaDialogOpen} onClose={() => setMediaDialogOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     Add Media
-                    <IconButton onClick={() => setMediaDialogOpen(false)}>
-                        <CloseIcon />
-                    </IconButton>
+                    <IconButton onClick={() => setMediaDialogOpen(false)}><CloseIcon /></IconButton>
                 </Box>
             </DialogTitle>
             <DialogContent>
-                <Tabs value={mediaTab} onChange={(_, newValue) => setMediaTab(newValue)}>
+                <Tabs value={mediaTab} onChange={(_, v) => setMediaTab(v)}>
                     <Tab label="Upload Files" />
                     <Tab label="Media Library" />
                     <Tab label="Insert from URL" />
                 </Tabs>
 
-                {/* Upload Tab */}
                 {mediaTab === 0 && (
                     <Box sx={{ mt: 2 }}>
                         <Box
+                            component="label"
                             sx={{
                                 border: '2px dashed #ccc',
                                 borderRadius: 2,
@@ -2005,37 +1951,20 @@ const BlogManagement = () => {
                                 cursor: 'pointer',
                                 '&:hover': { borderColor: '#999' }
                             }}
-                            component="label"
                         >
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*,video/*"
-                                onChange={handleFileUpload}
-                                style={{ display: 'none' }}
-                            />
-                            <UploadIcon sx={{ fontSize: 48, color: '#ccc', mb: 2 }} />
-                            <Typography variant="h6" gutterBottom>Drop files to upload</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                or click to select files
-                            </Typography>
+                            <input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                            <UploadIcon sx={{ fontSize: 48, color: '#bbb', mb: 2 }} />
+                            <Typography variant="h6">Drop files to upload</Typography>
+                            <Typography variant="body2" color="text.secondary">or click to select files</Typography>
                             <Button variant="outlined" sx={{ mt: 2 }}>Select Files</Button>
                         </Box>
 
                         {uploadProgress > 0 && (
                             <Box sx={{ mt: 2 }}>
-                                <Typography variant="body2">Uploading...</Typography>
+                                <Typography variant="body2">Uploading... {uploadProgress}%</Typography>
                                 <Box sx={{ width: '100%', mt: 1 }}>
                                     <Box sx={{ bgcolor: '#e0e0e0', height: 8, borderRadius: 4 }}>
-                                        <Box
-                                            sx={{
-                                                bgcolor: 'primary.main',
-                                                height: 8,
-                                                borderRadius: 4,
-                                                width: `${uploadProgress}%`,
-                                                transition: 'width 0.3s ease'
-                                            }}
-                                        />
+                                        <Box sx={{ bgcolor: 'primary.main', height: 8, borderRadius: 4, width: `${uploadProgress}%`, transition: 'width .3s' }} />
                                     </Box>
                                 </Box>
                             </Box>
@@ -2043,46 +1972,22 @@ const BlogManagement = () => {
                     </Box>
                 )}
 
-                {/* Media Library Tab */}
                 {mediaTab === 1 && (
                     <Box sx={{ mt: 2 }}>
                         {mediaItems.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-                                No media files found. Upload some files first.
-                            </Typography>
+                            <Typography align="center" color="text.secondary" sx={{ py: 4 }}>No media files found.</Typography>
                         ) : (
                             <ImageList cols={3} rowHeight={164}>
-                                {mediaItems.map((item) => (
-                                    <ImageListItem
-                                        key={item._id}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            border: selectedMedia?._id === item._id ? '3px solid #2271b1' : 'none'
-                                        }}
-                                        onClick={() => setSelectedMedia(item)}
-                                    >
+                                {mediaItems.map(item => (
+                                    <ImageListItem key={item._id} sx={{ cursor: 'pointer', border: selectedMedia?._id === item._id ? '3px solid #2271b1' : 'none' }} onClick={() => setSelectedMedia(item)}>
                                         {item.type === 'image' ? (
-                                            <img
-                                                src={item.url}
-                                                alt={item.alt}
-                                                loading="lazy"
-                                                style={{ height: '100%', objectFit: 'cover' }}
-                                            />
+                                            <img src={item.url} alt={item.alt || item.filename} loading="lazy" style={{ height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <Box sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                bgcolor: '#f0f0f0'
-                                            }}>
+                                            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f0f0f0' }}>
                                                 <VideoIconOutlined sx={{ fontSize: 48, color: '#666' }} />
                                             </Box>
                                         )}
-                                        <ImageListItemBar
-                                            title={item.filename}
-                                            subtitle={formatFileSize(item.size || 0)}
-                                        />
+                                        <ImageListItemBar title={item.filename} subtitle={formatFileSize(item.size || 0)} />
                                     </ImageListItem>
                                 ))}
                             </ImageList>
@@ -2091,79 +1996,59 @@ const BlogManagement = () => {
                         {selectedMedia && (
                             <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
                                 <Typography variant="h6">{selectedMedia.filename}</Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    {formatFileSize(selectedMedia.size || 0)} • {formatDate(selectedMedia.createdAt)}
-                                </Typography>
+                                <Typography variant="body2" color="text.secondary">{formatFileSize(selectedMedia.size || 0)} • {formatDate(selectedMedia.createdAt)}</Typography>
                             </Box>
                         )}
                     </Box>
                 )}
 
-                {/* Insert from URL Tab */}
                 {mediaTab === 2 && (
                     <Box sx={{ mt: 2 }}>
-                        <TextField
-                            fullWidth
-                            label="Media URL"
-                            placeholder="https://youtube.com/watch?v=... or https://instagram.com/p/..."
-                            value={mediaUrl}
-                            onChange={(e) => setMediaUrl(e.target.value)}
-                            helperText="Supports YouTube, Instagram, TikTok, Twitter, and direct image/video links"
-                        />
+                        <TextField fullWidth label="Media URL" placeholder="https://youtube.com/..." value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} helperText="Supports YouTube, Instagram, TikTok, Twitter, and direct links" />
                     </Box>
                 )}
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => setMediaDialogOpen(false)}>Cancel</Button>
-                {mediaTab === 1 && (
-                    <Button
-                        variant="contained"
-                        onClick={() => {
-                            if (selectedMedia) {
-                                insertMediaIntoContent(selectedMedia);
-                                setMediaDialogOpen(false);
-                            }
-                        }}
-                        disabled={!selectedMedia}
-                    >
-                        Insert Media
-                    </Button>
-                )}
-                {mediaTab === 2 && (
-                    <Button variant="contained" onClick={handleUrlEmbed} disabled={!mediaUrl}>
-                        Insert URL
-                    </Button>
-                )}
+                {mediaTab === 1 && <Button variant="contained" onClick={() => { if (selectedMedia) { insertMediaIntoContent(selectedMedia); setMediaDialogOpen(false); } }} disabled={!selectedMedia}>Insert Media</Button>}
+                {mediaTab === 2 && <Button variant="contained" onClick={handleUrlEmbed} disabled={!mediaUrl}>Insert URL</Button>}
             </DialogActions>
         </Dialog>
     );
 
-    // Early return for error state
-    if (error) {
-        return (
-            <Box sx={{ p: 3 }}>
-                <Alert severity="error" onClose={() => setError(null)}>
-                    {error}
-                </Alert>
-                <Box sx={{ mt: 2 }}>
-                    <Button variant="contained" onClick={fetchInitialData}>
-                        Retry
-                    </Button>
+    // View Dialog
+    const ViewPostDialog = () => (
+        <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} fullWidth maxWidth="md">
+            <DialogTitle>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {selectedPost?.title || 'Post'}
+                    <IconButton onClick={() => setViewDialogOpen(false)}><CloseIcon /></IconButton>
                 </Box>
-            </Box>
-        );
-    }
+            </DialogTitle>
+            <DialogContent dividers>
+                {selectedPost ? (
+                    <Box>
+                        <Typography variant="subtitle2" color="text.secondary">By {selectedPost.author?.name || selectedPost.author || 'Unknown'} • {formatDate(selectedPost.publishDate || selectedPost.createdAt)}</Typography>
+                        {selectedPost.featuredImage && <Box sx={{ mt: 2 }}><img src={selectedPost.featuredImage} alt="featured" style={{ width: '100%', borderRadius: 8 }} /></Box>}
+                        <Box sx={{ mt: 2 }}>
+                            <div dangerouslySetInnerHTML={{ __html: selectedPost.content || selectedPost.excerpt || '<i>No content.</i>' }} />
+                        </Box>
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+                )}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+            </DialogActions>
+        </Dialog>
+    );
 
+    // Breadcrumb
     const Breadcrumb = () => (
         <Breadcrumbs sx={{ mb: 2 }}>
-            <Link
-                color="inherit"
-                href="#"
-                onClick={() => setCurrentView('posts')}
-                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-            >
-                <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                Dashboard
+            <Link color="inherit" href="#" onClick={() => setCurrentView('posts')} sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
             </Link>
             {currentView === 'posts' && <Typography color="text.primary">Posts</Typography>}
             {currentView === 'categories' && <Typography color="text.primary">Categories</Typography>}
@@ -2172,20 +2057,12 @@ const BlogManagement = () => {
         </Breadcrumbs>
     );
 
+    // Posts list component
     const PostsList = () => (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h1">
-                    Posts
-                </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleNewPost}
-                    sx={{ backgroundColor: '#2271b1', '&:hover': { backgroundColor: '#135e96' } }}
-                >
-                    Add New
-                </Button>
+                <Typography variant="h4">Posts</Typography>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={handleNewPost} sx={{ backgroundColor: 'primary.main' }}>Add New</Button>
             </Box>
 
             {/* Filters */}
@@ -2199,11 +2076,7 @@ const BlogManagement = () => {
 
                 <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
-                        <Select
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            displayEmpty
-                        >
+                        <Select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} displayEmpty>
                             <MenuItem value="all">All dates</MenuItem>
                             <MenuItem value="today">Today</MenuItem>
                             <MenuItem value="week">This week</MenuItem>
@@ -2212,58 +2085,30 @@ const BlogManagement = () => {
                     </FormControl>
 
                     <FormControl size="small" sx={{ minWidth: 140 }}>
-                        <Select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            displayEmpty
-                        >
+                        <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} displayEmpty>
                             <MenuItem value="all">All categories</MenuItem>
-                            {categories.map(cat => (
-                                <MenuItem key={cat._id} value={cat.name}>{cat.name}</MenuItem>
-                            ))}
+                            {categories.map(cat => (<MenuItem key={cat._id} value={cat.name}>{cat.name}</MenuItem>))}
                         </Select>
                     </FormControl>
 
-                    <Button variant="outlined" size="small">Filter</Button>
-
-                    <TextField
-                        size="small"
-                        placeholder="Search posts..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ width: 200 }}
-                    />
-                    <Button variant="outlined" size="small">Search Posts</Button>
+                    <TextField size="small" placeholder="Search posts..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ width: 200 }} />
                 </Box>
             </Box>
 
             {/* Bulk Actions */}
             <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <Select
-                        value={bulkAction}
-                        onChange={(e) => setBulkAction(e.target.value)}
-                        displayEmpty
-                    >
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <Select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} displayEmpty>
                         <MenuItem value="">Bulk actions</MenuItem>
                         <MenuItem value="delete">Move to Trash</MenuItem>
                         <MenuItem value="publish">Publish</MenuItem>
                         <MenuItem value="draft">Move to Draft</MenuItem>
                     </Select>
                 </FormControl>
-                <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleBulkAction}
-                    disabled={!bulkAction || selectedPosts.length === 0 || loading}
-                >
+                <Button size="small" variant="outlined" onClick={handleBulkAction} disabled={!bulkAction || selectedPosts.length === 0 || loading}>
                     {loading ? <CircularProgress size={16} /> : 'Apply'}
                 </Button>
-                {selectedPosts.length > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                        {selectedPosts.length} item(s) selected
-                    </Typography>
-                )}
+                {selectedPosts.length > 0 && <Typography variant="body2" color="text.secondary">{selectedPosts.length} item(s) selected</Typography>}
             </Box>
 
             {/* Posts Table */}
@@ -2272,11 +2117,7 @@ const BlogManagement = () => {
                     <TableHead sx={{ backgroundColor: '#f0f0f1' }}>
                         <TableRow>
                             <TableCell padding="checkbox">
-                                <Checkbox
-                                    checked={selectedPosts.length === filteredPosts.length && filteredPosts.length > 0}
-                                    indeterminate={selectedPosts.length > 0 && selectedPosts.length < filteredPosts.length}
-                                    onChange={handleSelectAll}
-                                />
+                                <Checkbox checked={selectedPosts.length === filteredPosts.length && filteredPosts.length > 0} indeterminate={selectedPosts.length > 0 && selectedPosts.length < filteredPosts.length} onChange={handleSelectAll} />
                             </TableCell>
                             <TableCell><strong>Title</strong></TableCell>
                             <TableCell><strong>Author</strong></TableCell>
@@ -2288,115 +2129,32 @@ const BlogManagement = () => {
                     </TableHead>
                     <TableBody>
                         {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                                    <CircularProgress />
-                                </TableCell>
-                            </TableRow>
+                            <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><CircularProgress /></TableCell></TableRow>
                         ) : filteredPosts.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                                    <Typography color="text.secondary">
-                                        No posts found
-                                    </Typography>
-                                </TableCell>
-                            </TableRow>
+                            <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><Typography color="text.secondary">No posts found</Typography></TableCell></TableRow>
                         ) : (
                             filteredPosts.map((post) => (
                                 <TableRow key={post._id} hover>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox
-                                            checked={selectedPosts.includes(post._id)}
-                                            onChange={() => handleSelectPost(post._id)}
-                                        />
-                                    </TableCell>
+                                    <TableCell padding="checkbox"><Checkbox checked={selectedPosts.includes(post._id)} onChange={() => handleSelectPost(post._id)} /></TableCell>
                                     <TableCell>
                                         <Box>
-                                            <Typography
-                                                variant="subtitle2"
-                                                sx={{
-                                                    fontWeight: 600,
-                                                    color: post.status === 'published' ? 'inherit' : 'text.secondary',
-                                                    cursor: 'pointer',
-                                                    '&:hover': { color: 'primary.main' }
-                                                }}
-                                                onClick={() => handleEditPost(post)}
-                                            >
-                                                {post.title}
-                                            </Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: post.status === 'published' ? 'inherit' : 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEditPost(post)}>{post.title}</Typography>
                                             <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                                <Link
-                                                    component="button"
-                                                    variant="body2"
-                                                    onClick={() => handleEditPost(post)}
-                                                    sx={{ textDecoration: 'none' }}
-                                                >
-                                                    Edit
-                                                </Link>
+                                                <Link component="button" variant="body2" onClick={() => handleEditPost(post)} sx={{ textDecoration: 'none' }}>Edit</Link>
                                                 <Typography variant="body2" color="text.secondary">|</Typography>
-                                                <Link component="button" variant="body2" sx={{ textDecoration: 'none' }}>
-                                                    Quick Edit
-                                                </Link>
+                                                <Link component="button" variant="body2" sx={{ textDecoration: 'none' }} onClick={async () => { try { await blogAPI.deletePost(post._id); await fetchInitialData(); } catch (err) { setError('Failed to delete post'); } }}>Trash</Link>
                                                 <Typography variant="body2" color="text.secondary">|</Typography>
-                                                <Link 
-                                                    component="button" 
-                                                    variant="body2" 
-                                                    color="error" 
-                                                    sx={{ textDecoration: 'none' }}
-                                                    onClick={async () => {
-                                                        try {
-                                                            await blogAPI.deletePost(post._id);
-                                                            await fetchInitialData();
-                                                        } catch (error) {
-                                                            setError('Failed to delete post');
-                                                        }
-                                                    }}
-                                                >
-                                                    Trash
-                                                </Link>
-                                                <Typography variant="body2" color="text.secondary">|</Typography>
-                                                <Link component="button" variant="body2" sx={{ textDecoration: 'none' }}>
-                                                    View
-                                                </Link>
+                                                <Link component="button" variant="body2" sx={{ textDecoration: 'none' }} onClick={() => handleViewPost(post)}>View</Link>
                                             </Box>
                                         </Box>
                                     </TableCell>
+                                    <TableCell><Typography variant="body2">{post.author || 'Unknown'}</Typography></TableCell>
+                                    <TableCell><Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{(post.categories || []).map((cat, i) => (<Chip key={i} label={typeof cat === 'string' ? cat : cat.name} size="small" variant="outlined" />))}</Box></TableCell>
+                                    <TableCell><Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{(post.tags || []).map((tag, i) => (<Chip key={i} label={typeof tag === 'string' ? tag : tag.name} size="small" />))}</Box></TableCell>
+                                    <TableCell align="center"><Typography variant="body2">{post.commentsCount || 0}</Typography></TableCell>
                                     <TableCell>
-                                        <Typography variant="body2">{post.author || 'Unknown'}</Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            {(post.categories || []).map((cat, index) => (
-                                                <Chip 
-                                                    key={index} 
-                                                    label={typeof cat === 'string' ? cat : cat.name} 
-                                                    size="small" 
-                                                    variant="outlined" 
-                                                />
-                                            ))}
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            {(post.tags || []).map((tag, index) => (
-                                                <Chip 
-                                                    key={index} 
-                                                    label={typeof tag === 'string' ? tag : tag.name} 
-                                                    size="small" 
-                                                />
-                                            ))}
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Typography variant="body2">0</Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2">
-                                            {post.status === 'published' ? 'Published' : post.status}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {formatDate(post.updatedAt || post.createdAt)}
-                                        </Typography>
+                                        <Typography variant="body2">{post.status === 'published' ? 'Published' : post.status}</Typography>
+                                        <Typography variant="caption" color="text.secondary">{formatDate(post.updatedAt || post.createdAt)}</Typography>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -2406,365 +2164,208 @@ const BlogManagement = () => {
             </TableContainer>
 
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                    {filteredPosts.length} items
-                </Typography>
+                <Typography variant="body2" color="text.secondary">{filteredPosts.length} items</Typography>
             </Box>
         </Box>
     );
 
-    const PostEditor = () => (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h1">
-                    {editingPost ? 'Edit Post' : 'Add New Post'}
-                </Typography>
-            </Box>
+    // Post Editor component (keeps controlled inputs and removes typing glitch)
+    const PostEditor = () => {
+        // compute base url for permalink preview
+        const baseUrl = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) ? process.env.NEXT_PUBLIC_BASE_URL : (typeof window !== 'undefined' ? window.location.origin : '');
 
-            <Grid container spacing={3}>
-                {/* Main Content */}
-                <Grid item xs={12} md={8}>
-                    <Stack spacing={3}>
-                        {/* Title */}
-                        <TextField
-                            fullWidth
-                            placeholder="Add title"
-                            value={postData.title}
-                            onChange={(e) => setPostData(prev => ({ ...prev, title: e.target.value }))}
-                            sx={{
-                                '& .MuiInputBase-input': {
-                                    fontSize: '1.7rem',
-                                    fontWeight: 400,
-                                    lineHeight: 1.2
-                                }
-                            }}
-                        />
+        return (
+            <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h4">{editingPost ? 'Edit Post' : 'Add New Post'}</Typography>
+                </Box>
 
-                        {/* Permalink */}
-                        {postData.title && (
-                            <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderRadius: 1 }}>
-                                <Typography variant="body2" gutterBottom>
-                                    <strong>Permalink:</strong> http://localhost:3000/
-                                    <TextField
-                                        size="small"
-                                        value={postData.permalink || postData.title.toLowerCase().replace(/\s+/g, '-')}
-                                        onChange={(e) => setPostData(prev => ({ ...prev, permalink: e.target.value }))}
-                                        variant="standard"
-                                        sx={{ mx: 1 }}
-                                    />
-                                    <Button size="small">Edit</Button>
-                                </Typography>
-                            </Box>
-                        )}
+                <Grid container spacing={3}>
+                    <Grid item xs={12} md={8}>
+                        <Stack spacing={3}>
+                            <TextField fullWidth placeholder="Add title" value={postData.title} onChange={(e) => setPostData(prev => ({ ...prev, title: e.target.value }))} sx={{ '& .MuiInputBase-input': { fontSize: '1.7rem', fontWeight: 400, lineHeight: 1.2 } }} />
 
-                        {/* Content Editor */}
-                        <Card>
-                            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
-                                <Tabs value={0}>
-                                    <Tab label="Visual" />
-                                    <Tab label="Text" />
-                                </Tabs>
-                            </Box>
-                            <Box sx={{ p: 2 }}>
-                                {/* Toolbar */}
-                                <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <FormControl size="small" sx={{ minWidth: 100 }}>
-                                        <Select value="paragraph" displayEmpty>
-                                            <MenuItem value="paragraph">Paragraph</MenuItem>
-                                            <MenuItem value="heading1">Heading 1</MenuItem>
-                                            <MenuItem value="heading2">Heading 2</MenuItem>
-                                        </Select>
-                                    </FormControl>
-
-                                    <Divider orientation="vertical" flexItem />
-
-                                    <IconButton size="small">
-                                        <BoldIcon />
-                                    </IconButton>
-                                    <IconButton size="small">
-                                        <ItalicIcon />
-                                    </IconButton>
-                                    <IconButton size="small">
-                                        <UnderlineIcon />
-                                    </IconButton>
-
-                                    <Divider orientation="vertical" flexItem />
-
-                                    <IconButton size="small">
-                                        <AlignLeftIcon />
-                                    </IconButton>
-                                    <IconButton size="small">
-                                        <AlignCenterIcon />
-                                    </IconButton>
-                                    <IconButton size="small">
-                                        <AlignRightIcon />
-                                    </IconButton>
-
-                                    <Divider orientation="vertical" flexItem />
-
-                                    {/* Add Media Button */}
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<ImageIcon />}
-                                        onClick={handleMediaDialog}
-                                        sx={{ minWidth: 'auto' }}
-                                    >
-                                        Add Media
-                                    </Button>
-
-                                    <IconButton size="small" title="Insert Link">
-                                        <InsertLinkIcon />
-                                    </IconButton>
+                            {postData.title && (
+                                <Box sx={{ p: 2, backgroundColor: '#f7f7f8', borderRadius: 1 }}>
+                                    <Typography variant="body2" gutterBottom>
+                                        <strong>Permalink:</strong> {baseUrl}/
+                                        <TextField size="small" value={postData.permalink || postData.title.toLowerCase().replace(/\s+/g, '-')} onChange={(e) => setPostData(prev => ({ ...prev, permalink: e.target.value }))} variant="standard" sx={{ mx: 1 }} />
+                                        <Button size="small">Edit</Button>
+                                    </Typography>
                                 </Box>
+                            )}
 
-                                {/* Content Area */}
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={12}
-                                    placeholder="Start writing your post..."
-                                    value={postData.content}
-                                    onChange={(e) => setPostData(prev => ({ ...prev, content: e.target.value }))}
-                                    variant="outlined"
-                                    sx={{
-                                        '& .MuiInputBase-root': {
-                                            minHeight: '300px'
-                                        }
-                                    }}
-                                />
+                            <Card>
+                                <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
+                                    <Tabs value={editorTab} onChange={(_, v) => setEditorTab(v)}>
+                                        <Tab label="Visual" />
+                                        <Tab label="Text" />
+                                    </Tabs>
+                                </Box>
+                                <Box sx={{ p: 2 }}>
+                                    <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <FormControl size="small" sx={{ minWidth: 100 }}>
+                                            <Select value="paragraph" displayEmpty>
+                                                <MenuItem value="paragraph">Paragraph</MenuItem>
+                                                <MenuItem value="heading1">Heading 1</MenuItem>
+                                                <MenuItem value="heading2">Heading 2</MenuItem>
+                                            </Select>
+                                        </FormControl>
 
-                                {/* Media Attachments Display */}
-                                {postData.mediaItems.length > 0 && (
-                                    <Box sx={{ mt: 2 }}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            Media Attachments:
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                            {postData.mediaItems.map((media, index) => (
-                                                <Chip
-                                                    key={index}
-                                                    label={media.filename || media.type}
-                                                    variant="outlined"
-                                                    size="small"
-                                                    onDelete={() => {
-                                                        setPostData(prev => ({
-                                                            ...prev,
-                                                            mediaItems: prev.mediaItems.filter((_, i) => i !== index)
-                                                        }));
-                                                    }}
-                                                />
-                                            ))}
+                                        <Divider orientation="vertical" flexItem />
+
+                                        <IconButton size="small"><BoldIcon /></IconButton>
+                                        <IconButton size="small"><ItalicIcon /></IconButton>
+                                        <IconButton size="small"><UnderlineIcon /></IconButton>
+
+                                        <Divider orientation="vertical" flexItem />
+
+                                        <IconButton size="small"><AlignLeftIcon /></IconButton>
+                                        <IconButton size="small"><AlignCenterIcon /></IconButton>
+                                        <IconButton size="small"><AlignRightIcon /></IconButton>
+
+                                        <Divider orientation="vertical" flexItem />
+
+                                        <Button variant="outlined" size="small" startIcon={<ImageIcon />} onClick={handleMediaDialog} sx={{ minWidth: 'auto' }}>Add Media</Button>
+
+                                        <IconButton size="small" title="Insert Link"><InsertLinkIcon /></IconButton>
+                                    </Box>
+
+                                    {/* Controlled content field */}
+                                    <TextField fullWidth multiline rows={12} placeholder="Start writing your post..." value={postData.content} onChange={(e) => setPostData(prev => ({ ...prev, content: e.target.value }))} variant="outlined" sx={{ '& .MuiInputBase-root': { minHeight: '300px' } }} />
+
+                                    {postData.mediaItems.length > 0 && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <Typography variant="subtitle2" gutterBottom>Media Attachments:</Typography>
+                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                {postData.mediaItems.map((media, index) => (
+                                                    <Chip key={index} label={media.filename || media.type} variant="outlined" size="small" onDelete={() => setPostData(prev => ({ ...prev, mediaItems: prev.mediaItems.filter((_, i) => i !== index) }))} />
+                                                ))}
+                                            </Box>
                                         </Box>
-                                    </Box>
-                                )}
+                                    )}
 
-                                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Word count: {postData.content.split(' ').filter(word => word.length > 0).length}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Last saved: {new Date().toLocaleTimeString()}
-                                    </Typography>
+                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography variant="caption" color="text.secondary">Word count: {postData.content.split(/\s+/).filter(Boolean).length}</Typography>
+                                        <Typography variant="caption" color="text.secondary">Last saved: {new Date().toLocaleTimeString()}</Typography>
+                                    </Box>
                                 </Box>
-                            </Box>
-                        </Card>
-                    </Stack>
+                            </Card>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                        <Stack spacing={2}>
+                            <Card>
+                                <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
+                                    <Typography variant="h6">Publish</Typography>
+                                </Box>
+                                <Box sx={{ p: 2 }}>
+                                    <Stack spacing={2}>
+                                        <Box>
+                                            <Button variant="outlined" size="small" sx={{ mr: 1 }}>Save Draft</Button>
+                                            <Button variant="outlined" size="small">Preview</Button>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="body2" gutterBottom>
+                                                <strong>Status:</strong>
+                                                <FormControl size="small" sx={{ ml: 1, minWidth: 110 }}>
+                                                    <Select value={postData.status} onChange={(e) => setPostData(prev => ({ ...prev, status: e.target.value }))}>
+                                                        <MenuItem value="draft">Draft</MenuItem>
+                                                        <MenuItem value="published">Published</MenuItem>
+                                                        <MenuItem value="scheduled">Scheduled</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                            </Typography>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="body2" gutterBottom><strong>Visibility:</strong> {postData.visibility} <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link></Typography>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="body2" gutterBottom><strong>Publish:</strong> {postData.status === 'published' ? 'Immediately' : 'When ready'} <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link></Typography>
+                                        </Box>
+
+                                        <Button color="error" variant="outlined" size="small" onClick={() => { setCurrentView('posts'); }}>Move to Trash</Button>
+
+                                        <Button variant="contained" size="small" onClick={handleSavePost} disabled={loading || !postData.title.trim()} sx={{ backgroundColor: 'primary.main' }}>
+                                            {loading ? <CircularProgress size={20} /> : (editingPost ? 'Update' : 'Publish')}
+                                        </Button>
+                                    </Stack>
+                                </Box>
+                            </Card>
+
+                            <Card>
+                                <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
+                                    <Typography variant="h6">Categories</Typography>
+                                </Box>
+                                <Box sx={{ p: 2 }}>
+                                    <Stack spacing={1}>
+                                        {categories.length === 0 ? (
+                                            <Typography variant="body2" color="text.secondary">No categories available</Typography>
+                                        ) : (
+                                            categories.map(category => (
+                                                <FormControlLabel key={category._id} control={<Checkbox checked={postData.categories.includes(category.name)} onChange={(e) => {
+                                                    if (e.target.checked) setPostData(prev => ({ ...prev, categories: [...prev.categories, category.name] }));
+                                                    else setPostData(prev => ({ ...prev, categories: prev.categories.filter(cat => cat !== category.name) }));
+                                                }} />} label={category.name} />
+                                            ))
+                                        )}
+                                    </Stack>
+                                    <Box sx={{ mt: 2 }}><Link component="button" variant="body2">+ Add New Category</Link></Box>
+                                </Box>
+                            </Card>
+
+                            <Card>
+                                <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
+                                    <Typography variant="h6">Tags</Typography>
+                                </Box>
+                                <Box sx={{ p: 2 }}>
+                                    <Autocomplete multiple freeSolo options={tags.map(t => t.name)} value={postData.tags} onChange={(_, newValue) => setPostData(prev => ({ ...prev, tags: newValue }))} renderInput={(params) => <TextField {...params} placeholder="Add tags" size="small" />} renderTags={(value, getTagProps) => value.map((option, index) => (<Chip key={option} label={option} {...getTagProps({ index })} size="small" />))} />
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>Separate tags with commas</Typography>
+                                </Box>
+                            </Card>
+                        </Stack>
+                    </Grid>
                 </Grid>
 
-                {/* Sidebar */}
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={2}>
-                        {/* Publish */}
-                        <Card>
-                            <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                                <Typography variant="h6">Publish</Typography>
-                            </Box>
-                            <Box sx={{ p: 2 }}>
-                                <Stack spacing={2}>
-                                    <Box>
-                                        <Button variant="outlined" size="small" sx={{ mr: 1 }}>
-                                            Save Draft
-                                        </Button>
-                                        <Button variant="outlined" size="small">
-                                            Preview
-                                        </Button>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography variant="body2" gutterBottom>
-                                            <strong>Status:</strong> 
-                                            <FormControl size="small" sx={{ ml: 1, minWidth: 80 }}>
-                                                <Select
-                                                    value={postData.status}
-                                                    onChange={(e) => setPostData(prev => ({ ...prev, status: e.target.value }))}
-                                                >
-                                                    <MenuItem value="draft">Draft</MenuItem>
-                                                    <MenuItem value="published">Published</MenuItem>
-                                                    <MenuItem value="scheduled">Scheduled</MenuItem>
-                                                </Select>
-                                            </FormControl>
-                                        </Typography>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography variant="body2" gutterBottom>
-                                            <strong>Visibility:</strong> {postData.visibility}
-                                            <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link>
-                                        </Typography>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography variant="body2" gutterBottom>
-                                            <strong>Publish:</strong> {postData.status === 'published' ? 'Immediately' : 'When ready'}
-                                            <Link component="button" variant="body2" sx={{ ml: 1 }}>Edit</Link>
-                                        </Typography>
-                                    </Box>
-
-                                    <Button color="error" variant="outlined" size="small">
-                                        Move to Trash
-                                    </Button>
-
-                                    <Button
-                                        variant="contained"
-                                        size="small"
-                                        onClick={handleSavePost}
-                                        disabled={loading || !postData.title.trim()}
-                                        sx={{ backgroundColor: '#2271b1' }}
-                                    >
-                                        {loading ? <CircularProgress size={20} /> : (editingPost ? 'Update' : 'Publish')}
-                                    </Button>
-                                </Stack>
-                            </Box>
-                        </Card>
-
-                        {/* Categories */}
-                        <Card>
-                            <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                                <Typography variant="h6">Categories</Typography>
-                            </Box>
-                            <Box sx={{ p: 2 }}>
-                                <Stack spacing={1}>
-                                    {categories.length === 0 ? (
-                                        <Typography variant="body2" color="text.secondary">
-                                            No categories available
-                                        </Typography>
-                                    ) : (
-                                        categories.map(category => (
-                                            <FormControlLabel
-                                                key={category._id}
-                                                control={
-                                                    <Checkbox
-                                                        checked={postData.categories.includes(category.name)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setPostData(prev => ({
-                                                                    ...prev,
-                                                                    categories: [...prev.categories, category.name]
-                                                                }));
-                                                            } else {
-                                                                setPostData(prev => ({
-                                                                    ...prev,
-                                                                    categories: prev.categories.filter(cat => cat !== category.name)
-                                                                }));
-                                                            }
-                                                        }}
-                                                    />
-                                                }
-                                                label={category.name}
-                                            />
-                                        ))
-                                    )}
-                                </Stack>
-                                <Box sx={{ mt: 2 }}>
-                                    <Link component="button" variant="body2">+ Add New Category</Link>
-                                </Box>
-                            </Box>
-                        </Card>
-
-                        {/* Tags */}
-                        <Card>
-                            <Box sx={{ p: 2, backgroundColor: '#f0f0f1', borderBottom: 1, borderColor: 'divider' }}>
-                                <Typography variant="h6">Tags</Typography>
-                            </Box>
-                            <Box sx={{ p: 2 }}>
-                                <Autocomplete
-                                    multiple
-                                    freeSolo
-                                    options={tags.map(tag => tag.name)}
-                                    value={postData.tags}
-                                    onChange={(_, newValue) => setPostData(prev => ({ ...prev, tags: newValue }))}
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            placeholder="Add tags"
-                                            size="small"
-                                        />
-                                    )}
-                                    renderTags={(value, getTagProps) =>
-                                        value.map((option, index) => (
-                                            <Chip
-                                                key={option}
-                                                label={option}
-                                                {...getTagProps({ index })}
-                                                size="small"
-                                            />
-                                        ))
-                                    }
-                                />
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    Separate tags with commas
-                                </Typography>
-                            </Box>
-                        </Card>
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            {/* Media Dialog */}
-            <MediaDialog />
-        </Box>
-    );
+                <MediaDialog />
+            </Box>
+        );
+    };
 
     // Navigation menu
     const NavigationMenu = () => (
         <Box sx={{ mb: 3 }}>
             <Stack direction="row" spacing={2}>
-                <Button
-                    variant={currentView === 'posts' ? 'contained' : 'outlined'}
-                    startIcon={<ArticleIcon />}
-                    onClick={() => setCurrentView('posts')}
-                    sx={{ backgroundColor: currentView === 'posts' ? '#2271b1' : 'transparent' }}
-                >
-                    Posts
-                </Button>
-                <Button
-                    variant={currentView === 'categories' ? 'contained' : 'outlined'}
-                    startIcon={<CategoryIcon />}
-                    onClick={() => setCurrentView('categories')}
-                    sx={{ backgroundColor: currentView === 'categories' ? '#2271b1' : 'transparent' }}
-                >
-                    Categories
-                </Button>
-                <Button
-                    variant={currentView === 'tags' ? 'contained' : 'outlined'}
-                    startIcon={<TagIcon />}
-                    onClick={() => setCurrentView('tags')}
-                    sx={{ backgroundColor: currentView === 'tags' ? '#2271b1' : 'transparent' }}
-                >
-                    Tags
-                </Button>
+                <Button variant={currentView === 'posts' ? 'contained' : 'outlined'} startIcon={<ArticleIcon />} onClick={() => setCurrentView('posts')} sx={{ backgroundColor: currentView === 'posts' ? 'primary.main' : 'transparent' }}>Posts</Button>
+                <Button variant={currentView === 'categories' ? 'contained' : 'outlined'} startIcon={<CategoryIcon />} onClick={() => setCurrentView('categories')} sx={{ backgroundColor: currentView === 'categories' ? 'primary.main' : 'transparent' }}>Categories</Button>
+                <Button variant={currentView === 'tags' ? 'contained' : 'outlined'} startIcon={<TagIcon />} onClick={() => setCurrentView('tags')} sx={{ backgroundColor: currentView === 'tags' ? 'primary.main' : 'transparent' }}>Tags</Button>
             </Stack>
         </Box>
     );
+
+    // Error early return
+    if (error) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+                <Box sx={{ mt: 2 }}>
+                    <Button variant="contained" onClick={fetchInitialData}>Retry</Button>
+                </Box>
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ p: 3, backgroundColor: '#f0f0f1', minHeight: '100vh' }}>
             <Breadcrumb />
             <NavigationMenu />
-
             {currentView === 'posts' && <PostsList />}
             {currentView === 'add-post' && <PostEditor />}
+            <ViewPostDialog />
         </Box>
     );
 };
